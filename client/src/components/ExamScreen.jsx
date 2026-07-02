@@ -1,15 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { saveAnswer, submitAttempt } from '../lib/api.js';
 import { Flag, ChevronLeft, ChevronRight, Send, X, AlertTriangle, BookOpen, Clock } from 'lucide-react';
 
-const font = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-const C = {
-  primary: '#2563eb', primaryDark: '#1d4ed8', primaryLight: '#eff6ff',
-  dark: '#0f172a', bg: '#f0f4f8', card: '#fff',
-  border: '#e2e8f0', borderLight: '#f8fafc',
-  text: '#0f172a', textMid: '#334155', muted: '#64748b',
-  success: '#16a34a', danger: '#dc2626', warning: '#d97706',
-};
 const OPTIONS = ['A', 'B', 'C', 'D'];
 const OPTION_KEYS = ['option_a', 'option_b', 'option_c', 'option_d'];
 
@@ -18,28 +11,34 @@ function fmt(s) {
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 }
 
-function ConfirmModal({ title, message, confirmLabel, confirmColor = C.danger, onConfirm, onCancel, children }) {
+function ConfirmModal({ title, message, confirmLabel, confirmDanger, onConfirm, onCancel }) {
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 500, padding: '1rem' }}>
-      <div style={{ background: '#fff', borderRadius: '16px', padding: '2rem', maxWidth: '420px', width: '100%', boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 500, padding: '1rem' }}>
+      <motion.div initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.2 }}
+        style={{ background: 'var(--bg-card)', borderRadius: '16px', padding: '2rem', maxWidth: '420px', width: '100%', boxShadow: 'var(--shadow-lg)', border: '1px solid var(--border)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.85rem' }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <AlertTriangle size={20} color={C.danger} />
+          <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'var(--danger-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <AlertTriangle size={20} color="var(--danger)" />
           </div>
-          <div style={{ fontWeight: '800', fontSize: '1.1rem', color: C.text }}>{title}</div>
+          <div style={{ fontWeight: '800', fontSize: '1.1rem', color: 'var(--text)', fontFamily: 'var(--font-head)' }}>{title}</div>
         </div>
-        <div style={{ color: C.muted, lineHeight: 1.65, fontSize: '0.9rem', marginBottom: '1.5rem' }}>{message}</div>
-        {children}
+        <div style={{ color: 'var(--text-muted)', lineHeight: 1.65, fontSize: '0.9rem', marginBottom: '1.5rem' }}>{message}</div>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <button onClick={onCancel} style={{ flex: 1, padding: '0.7rem', background: '#fff', border: `1.5px solid ${C.border}`, borderRadius: '10px', fontWeight: '700', cursor: 'pointer', color: C.textMid, fontSize: '0.9rem', fontFamily: font }}>
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+            onClick={onCancel}
+            className="btn-ghost"
+            style={{ flex: 1, padding: '0.7rem', fontSize: '0.9rem', fontFamily: 'var(--font-body)' }}>
             Go Back
-          </button>
-          <button onClick={onConfirm} style={{ flex: 1, padding: '0.7rem', background: confirmColor, color: '#fff', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', fontSize: '0.9rem', fontFamily: font }}>
+          </motion.button>
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+            onClick={onConfirm}
+            style={{ flex: 1, padding: '0.7rem', background: confirmDanger ? 'var(--danger)' : 'var(--text-muted)', color: '#fff', border: 'none', borderRadius: 'var(--radius)', fontWeight: '700', cursor: 'pointer', fontSize: '0.9rem', fontFamily: 'var(--font-body)' }}>
             {confirmLabel}
-          </button>
+          </motion.button>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -55,7 +54,7 @@ export default function ExamScreen({ attempt, onFinish, onCancel }) {
   const [timeLeft, setTimeLeft] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [modal, setModal] = useState(null); // 'submit' | 'cancel'
+  const [modal, setModal] = useState(null);
   const submittedRef = useRef(false);
 
   useEffect(() => {
@@ -118,72 +117,80 @@ export default function ExamScreen({ attempt, onFinish, onCancel }) {
     try { await saveAnswer(att.id, q.id, answers[q.id] ?? null, nowFlagged); } catch {}
   }
 
-  function navStyle(i) {
+  function navBtnStyle(i) {
     const qId = questions[i].id;
     const cur = i === currentIdx;
     const ans = answers[qId] !== undefined;
     const flg = flags.has(qId);
-    let bg = '#f1f5f9', color = '#64748b', border = 'transparent';
-    if (cur) { bg = C.primary; color = '#fff'; border = C.primary; }
-    else if (flg) { bg = '#fef3c7'; color = C.warning; border = '#fcd34d'; }
-    else if (ans) { bg = '#dbeafe'; color = C.primary; border = '#bfdbfe'; }
-    return { width: '34px', height: '34px', borderRadius: '7px', border: `1.5px solid ${border}`, background: bg, color, fontWeight: cur ? '800' : '600', fontSize: '0.7rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: font };
+    let bg = 'var(--bg-subtle)', color = 'var(--text-muted)', border = 'transparent';
+    if (cur) { bg = 'var(--primary)'; color = '#fff'; border = 'var(--primary)'; }
+    else if (flg) { bg = 'var(--accent-light)'; color = 'var(--accent)'; border = 'var(--accent)'; }
+    else if (ans) { bg = 'var(--primary-light)'; color = 'var(--primary)'; border = 'var(--primary-mid)'; }
+    return { width: '34px', height: '34px', borderRadius: '7px', border: `1.5px solid ${border}`, background: bg, color, fontWeight: cur ? '800' : '600', fontSize: '0.7rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-body)' };
   }
 
   function optStyle(idx) {
-    const base = { width: '100%', textAlign: 'left', padding: '0.9rem 1rem', borderRadius: '10px', border: '2px solid', fontSize: '0.9rem', cursor: 'pointer', marginBottom: '0.55rem', display: 'flex', alignItems: 'flex-start', gap: '0.75rem', background: '#fff', fontFamily: font, transition: 'all 0.12s' };
+    const base = { width: '100%', textAlign: 'left', padding: '0.9rem 1rem', borderRadius: '10px', border: '2px solid', fontSize: '0.9rem', cursor: 'pointer', marginBottom: '0.55rem', display: 'flex', alignItems: 'flex-start', gap: '0.75rem', background: 'var(--bg-card)', fontFamily: 'var(--font-body)', transition: 'all 0.12s' };
     if (isPractice && fb) {
-      if (idx === fb.correctOptionIndex) return { ...base, borderColor: C.success, background: '#f0fdf4', color: C.success };
-      if (idx === selIdx && !fb.isCorrect) return { ...base, borderColor: C.danger, background: '#fef2f2', color: C.danger };
-      return { ...base, borderColor: C.border, color: '#94a3b8' };
+      if (idx === fb.correctOptionIndex) return { ...base, borderColor: 'var(--success)', background: 'var(--success-light)', color: 'var(--success)' };
+      if (idx === selIdx && !fb.isCorrect) return { ...base, borderColor: 'var(--danger)', background: 'var(--danger-light)', color: 'var(--danger)' };
+      return { ...base, borderColor: 'var(--border)', color: 'var(--text-subtle)' };
     }
-    if (idx === selIdx) return { ...base, borderColor: C.primary, background: '#eff6ff', color: C.primary };
-    return { ...base, borderColor: C.border, color: C.text };
+    if (idx === selIdx) return { ...base, borderColor: 'var(--primary)', background: 'var(--primary-light)', color: 'var(--primary)' };
+    return { ...base, borderColor: 'var(--border)', color: 'var(--text)' };
   }
 
-  const timerColor = timeLeft !== null && timeLeft < 300 ? C.danger : timeLeft < 600 ? C.warning : C.text;
+  const timerUrgent = timeLeft !== null && timeLeft < 300;
+  const timerWarn   = timeLeft !== null && timeLeft < 600 && !timerUrgent;
 
   if (submitting) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: C.bg, flexDirection: 'column', gap: '1rem', fontFamily: font }}>
-      <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.5rem', boxShadow: '0 8px 24px rgba(37,99,235,0.3)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg)', flexDirection: 'column', gap: '1rem', fontFamily: 'var(--font-body)' }}>
+      <motion.div animate={{ scale: [1, 1.07, 1] }} transition={{ duration: 1.2, repeat: Infinity }}
+        style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.5rem', boxShadow: '0 8px 24px rgba(13,92,115,0.3)' }}>
         <Send size={24} color="#fff" />
-      </div>
-      <div style={{ fontSize: '1.25rem', fontWeight: '800', color: C.text }}>Submitting your exam…</div>
-      <div style={{ color: C.muted, fontSize: '0.9rem' }}>Calculating your score, please wait.</div>
+      </motion.div>
+      <div style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--text)', fontFamily: 'var(--font-head)' }}>Submitting your exam…</div>
+      <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Calculating your score, please wait.</div>
     </div>
   );
 
   if (!q) return null;
 
   return (
-    <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', flexDirection: 'column', fontFamily: font }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column', fontFamily: 'var(--font-body)' }}>
 
       {/* ── Top bar ── */}
-      <div style={{ background: C.dark, padding: '0 1.5rem', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <div style={{ background: 'var(--bg-card)', borderBottom: '1px solid var(--border)', padding: '0 1.5rem', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100, boxShadow: 'var(--shadow-sm)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-          <span style={{ fontWeight: '800', color: '#fff', fontSize: '0.95rem', letterSpacing: '-0.01em' }}>CPTE Prep</span>
-          <span style={{ padding: '0.2rem 0.65rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '700', background: isMock ? 'rgba(245,158,11,0.2)' : 'rgba(37,99,235,0.2)', color: isMock ? '#fcd34d' : '#93c5fd', letterSpacing: '0.05em' }}>
+          <span style={{ fontWeight: '800', color: 'var(--text)', fontSize: '0.95rem', letterSpacing: '-0.01em', fontFamily: 'var(--font-head)' }}>CPTE Prep</span>
+          <span style={{ padding: '0.2rem 0.65rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '700', background: isMock ? 'var(--accent-light)' : 'var(--primary-light)', color: isMock ? 'var(--accent)' : 'var(--primary)', letterSpacing: '0.05em' }}>
             {isMock ? '⏱ MOCK EXAM' : '📖 PRACTICE'}
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           {isMock && timeLeft !== null && (
-            <div style={{ fontWeight: '800', fontSize: '1.1rem', color: timerColor, fontVariantNumeric: 'tabular-nums', background: timeLeft < 300 ? 'rgba(220,38,38,0.1)' : 'rgba(255,255,255,0.05)', padding: '0.25rem 0.75rem', borderRadius: '8px', border: `1px solid ${timeLeft < 300 ? 'rgba(220,38,38,0.3)' : 'rgba(255,255,255,0.08)'}` }}>
+            <motion.div animate={timerUrgent ? { scale: [1, 1.04, 1] } : {}} transition={{ duration: 0.8, repeat: Infinity }}
+              style={{ fontWeight: '800', fontSize: '1.1rem', color: timerUrgent ? 'var(--danger)' : timerWarn ? 'var(--warning)' : 'var(--text)', fontVariantNumeric: 'tabular-nums', background: timerUrgent ? 'var(--danger-light)' : 'var(--bg-subtle)', padding: '0.25rem 0.75rem', borderRadius: '8px', border: `1px solid ${timerUrgent ? 'var(--danger)' : 'var(--border)'}` }}>
               {fmt(timeLeft)}
-            </div>
+            </motion.div>
           )}
-          <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.45)', fontWeight: '600' }}>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '600' }}>
             {answeredCount}/{questions.length} answered
           </span>
-          <button onClick={() => setModal('cancel')} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem', background: 'rgba(220,38,38,0.15)', border: '1px solid rgba(220,38,38,0.3)', borderRadius: '7px', cursor: 'pointer', color: '#fca5a5', fontSize: '0.78rem', fontWeight: '700', fontFamily: font }}>
+          <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+            onClick={() => setModal('cancel')}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem', background: 'var(--danger-light)', border: '1px solid var(--danger)', borderRadius: '7px', cursor: 'pointer', color: 'var(--danger)', fontSize: '0.78rem', fontWeight: '700', fontFamily: 'var(--font-body)' }}>
             <X size={12} /> Cancel
-          </button>
+          </motion.button>
         </div>
       </div>
 
       {/* ── Progress bar ── */}
-      <div style={{ height: '3px', background: 'rgba(255,255,255,0.05)', position: 'sticky', top: '56px', zIndex: 99 }}>
-        <div style={{ height: '100%', width: `${(answeredCount / questions.length) * 100}%`, background: 'linear-gradient(90deg, #2563eb, #60a5fa)', transition: 'width 0.3s ease' }} />
+      <div style={{ height: '3px', background: 'var(--bg-subtle)' }}>
+        <motion.div
+          animate={{ width: `${(answeredCount / questions.length) * 100}%` }}
+          transition={{ duration: 0.3 }}
+          style={{ height: '100%', background: 'var(--primary)', borderRadius: '0 2px 2px 0' }} />
       </div>
 
       {/* ── Body ── */}
@@ -192,117 +199,130 @@ export default function ExamScreen({ attempt, onFinish, onCancel }) {
         {/* Main column */}
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* Question card */}
-          <div style={{ background: C.card, borderRadius: '14px', border: `1px solid ${C.border}`, padding: '1.5rem', marginBottom: '1rem', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: '700', color: C.muted }}>Q{currentIdx + 1} of {questions.length}</span>
-              <span style={{ padding: '0.2rem 0.6rem', background: '#eff6ff', color: C.primary, borderRadius: '6px', fontSize: '0.72rem', fontWeight: '700', letterSpacing: '0.03em' }}>{q.domain}</span>
-              {saving && <span style={{ fontSize: '0.72rem', color: C.muted, marginLeft: 'auto' }}>Saving…</span>}
-              <button onClick={handleFlag} style={{ marginLeft: saving ? '0' : 'auto', padding: '0.25rem 0.7rem', background: isFlagged ? '#fef3c7' : '#f8fafc', border: `1.5px solid ${isFlagged ? '#fcd34d' : C.border}`, borderRadius: '7px', color: isFlagged ? C.warning : C.muted, fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', fontFamily: font }}>
-                <Flag size={11} fill={isFlagged ? C.warning : 'none'} /> {isFlagged ? 'Flagged' : 'Flag'}
-              </button>
-            </div>
-            <p style={{ fontSize: '1rem', lineHeight: 1.7, color: C.text, fontWeight: '500', margin: 0 }}>{q.question_text}</p>
-          </div>
-
-          {/* Options */}
-          <div style={{ background: C.card, borderRadius: '14px', border: `1px solid ${C.border}`, padding: '1.5rem', marginBottom: '1rem', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-            {OPTIONS.map((letter, idx) => (
-              <button key={idx} onClick={() => handleSelect(idx)} disabled={isPractice && isAnswered} style={optStyle(idx)}>
-                <span style={{ width: '26px', height: '26px', borderRadius: '6px', background: 'rgba(100,116,139,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '0.8rem', flexShrink: 0 }}>{letter}</span>
-                <span style={{ lineHeight: 1.5 }}>{q[OPTION_KEYS[idx]]}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Practice feedback */}
-          {isPractice && fb && (
-            <div style={{ background: fb.isCorrect ? '#f0fdf4' : '#fef2f2', border: `1.5px solid ${fb.isCorrect ? '#86efac' : '#fca5a5'}`, borderRadius: '12px', padding: '1.25rem 1.35rem', marginBottom: '1rem' }}>
-              <div style={{ fontWeight: '800', color: fb.isCorrect ? C.success : C.danger, marginBottom: '0.5rem', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                {fb.isCorrect ? '✓ Correct!' : `✗ Incorrect — Correct answer: ${OPTIONS[fb.correctOptionIndex]}`}
+          <AnimatePresence mode="wait">
+            <motion.div key={currentIdx} initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }} transition={{ duration: 0.18 }}>
+              <div className="card" style={{ padding: '1.5rem', marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)' }}>Q{currentIdx + 1} of {questions.length}</span>
+                  <span style={{ padding: '0.2rem 0.6rem', background: 'var(--primary-light)', color: 'var(--primary)', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '700', letterSpacing: '0.03em' }}>{q.domain}</span>
+                  {saving && <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginLeft: 'auto' }}>Saving…</span>}
+                  <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                    onClick={handleFlag}
+                    style={{ marginLeft: saving ? '0' : 'auto', padding: '0.25rem 0.7rem', background: isFlagged ? 'var(--accent-light)' : 'var(--bg-subtle)', border: `1.5px solid ${isFlagged ? 'var(--accent)' : 'var(--border)'}`, borderRadius: '7px', color: isFlagged ? 'var(--accent)' : 'var(--text-muted)', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', fontFamily: 'var(--font-body)' }}>
+                    <Flag size={11} fill={isFlagged ? 'var(--accent)' : 'none'} /> {isFlagged ? 'Flagged' : 'Flag'}
+                  </motion.button>
+                </div>
+                <p style={{ fontSize: '1rem', lineHeight: 1.7, color: 'var(--text)', fontWeight: '500', margin: 0 }}>{q.question_text}</p>
               </div>
-              <div style={{ color: C.textMid, lineHeight: 1.65, fontSize: '0.875rem' }}>
-                <span style={{ fontWeight: '700', color: C.primary }}>Rationale: </span>{fb.rationale}
+
+              {/* Options */}
+              <div className="card" style={{ padding: '1.5rem', marginBottom: '1rem' }}>
+                {OPTIONS.map((letter, idx) => (
+                  <motion.button key={idx} whileHover={!(isPractice && isAnswered) ? { scale: 1.01 } : {}}
+                    onClick={() => handleSelect(idx)}
+                    disabled={isPractice && isAnswered}
+                    style={optStyle(idx)}>
+                    <span style={{ width: '26px', height: '26px', borderRadius: '6px', background: 'var(--bg-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '0.8rem', flexShrink: 0 }}>{letter}</span>
+                    <span style={{ lineHeight: 1.5 }}>{q[OPTION_KEYS[idx]]}</span>
+                  </motion.button>
+                ))}
               </div>
-            </div>
-          )}
+
+              {/* Practice feedback */}
+              {isPractice && fb && (
+                <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                  style={{ background: fb.isCorrect ? 'var(--success-light)' : 'var(--danger-light)', border: `1.5px solid ${fb.isCorrect ? 'var(--success)' : 'var(--danger)'}`, borderRadius: '12px', padding: '1.25rem 1.35rem', marginBottom: '1rem' }}>
+                  <div style={{ fontWeight: '800', color: fb.isCorrect ? 'var(--success)' : 'var(--danger)', marginBottom: '0.5rem', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    {fb.isCorrect ? '✓ Correct!' : `✗ Incorrect — Correct answer: ${OPTIONS[fb.correctOptionIndex]}`}
+                  </div>
+                  <div style={{ color: 'var(--text-mid)', lineHeight: 1.65, fontSize: '0.875rem' }}>
+                    <span style={{ fontWeight: '700', color: 'var(--primary)' }}>Rationale: </span>{fb.rationale}
+                  </div>
+                </motion.div>
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
 
         {/* Sidebar */}
         <div style={{ width: '230px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {/* Navigator */}
-          <div style={{ background: C.card, borderRadius: '14px', border: `1px solid ${C.border}`, padding: '1.1rem', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-            <div style={{ fontWeight: '700', color: C.text, marginBottom: '0.75rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <BookOpen size={13} color={C.muted} /> Question Map
+          <div className="card" style={{ padding: '1.1rem' }}>
+            <div style={{ fontWeight: '700', color: 'var(--text)', marginBottom: '0.75rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <BookOpen size={13} color="var(--text-muted)" /> Question Map
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px', marginBottom: '0.9rem' }}>
               {questions.map((_, i) => (
-                <button key={i} style={navStyle(i)} onClick={() => setCurrentIdx(i)}>{i + 1}</button>
+                <button key={i} style={navBtnStyle(i)} onClick={() => setCurrentIdx(i)}>{i + 1}</button>
               ))}
             </div>
-            <div style={{ fontSize: '0.7rem', color: C.muted, display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-              {[['#dbeafe', C.primary, `Answered (${answeredCount})`], ['#fef3c7', C.warning, `Flagged (${flaggedCount})`], ['#f1f5f9', '#64748b', `Unanswered (${questions.length - answeredCount})`]].map(([bg, color, label]) => (
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+              {[
+                ['var(--primary-light)', 'var(--primary)', `Answered (${answeredCount})`],
+                ['var(--accent-light)', 'var(--accent)', `Flagged (${flaggedCount})`],
+                ['var(--bg-subtle)', 'var(--text-subtle)', `Unanswered (${questions.length - answeredCount})`],
+              ].map(([bg, color, label]) => (
                 <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <span style={{ width: '10px', height: '10px', background: bg, borderRadius: '2px', display: 'inline-block', border: `1px solid ${color}30`, flexShrink: 0 }} />
+                  <span style={{ width: '10px', height: '10px', background: bg, borderRadius: '2px', display: 'inline-block', border: `1px solid ${color}`, flexShrink: 0 }} />
                   <span>{label}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Submit */}
-          <button onClick={() => setModal('submit')} disabled={submitting}
-            style={{ width: '100%', padding: '0.8rem', background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', fontSize: '0.875rem', boxShadow: '0 4px 12px rgba(220,38,38,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontFamily: font }}>
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+            onClick={() => setModal('submit')} disabled={submitting}
+            style={{ width: '100%', padding: '0.8rem', background: 'var(--danger)', color: '#fff', border: 'none', borderRadius: 'var(--radius)', fontWeight: '700', cursor: 'pointer', fontSize: '0.875rem', boxShadow: '0 4px 12px rgba(225,29,72,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontFamily: 'var(--font-body)' }}>
             <Send size={14} /> Submit Exam
-          </button>
+          </motion.button>
 
-          {/* Cancel */}
-          <button onClick={() => setModal('cancel')}
-            style={{ width: '100%', padding: '0.65rem', background: '#fff', border: `1.5px solid ${C.border}`, color: C.muted, borderRadius: '10px', fontWeight: '600', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', fontFamily: font }}>
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+            onClick={() => setModal('cancel')}
+            className="btn-ghost"
+            style={{ width: '100%', padding: '0.65rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
             <X size={13} /> Cancel & Exit
-          </button>
+          </motion.button>
         </div>
       </div>
 
       {/* ── Bottom nav ── */}
-      <div style={{ background: C.card, borderTop: `1px solid ${C.border}`, padding: '0.85rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', bottom: 0 }}>
-        <button onClick={() => setCurrentIdx(i => Math.max(0, i - 1))} disabled={currentIdx === 0}
-          style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.6rem 1.2rem', background: '#fff', border: `1.5px solid ${C.border}`, borderRadius: '9px', fontWeight: '700', cursor: currentIdx === 0 ? 'not-allowed' : 'pointer', color: currentIdx === 0 ? C.muted : C.textMid, fontSize: '0.875rem', fontFamily: font, opacity: currentIdx === 0 ? 0.5 : 1 }}>
+      <div style={{ background: 'var(--bg-card)', borderTop: '1px solid var(--border)', padding: '0.85rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', bottom: 0 }}>
+        <motion.button whileHover={currentIdx > 0 ? { scale: 1.03 } : {}} whileTap={currentIdx > 0 ? { scale: 0.97 } : {}}
+          onClick={() => setCurrentIdx(i => Math.max(0, i - 1))} disabled={currentIdx === 0}
+          className="btn-ghost"
+          style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.6rem 1.2rem', fontSize: '0.875rem', opacity: currentIdx === 0 ? 0.4 : 1, cursor: currentIdx === 0 ? 'not-allowed' : 'pointer' }}>
           <ChevronLeft size={15} /> Previous
-        </button>
-        <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-          {[Math.max(0, currentIdx - 1), currentIdx, Math.min(questions.length - 1, currentIdx + 1)].filter((v, i, a) => a.indexOf(v) === i).map(i => (
-            <button key={i} onClick={() => setCurrentIdx(i)} style={{ width: '28px', height: '28px', borderRadius: '6px', border: i === currentIdx ? `2px solid ${C.primary}` : 'none', background: i === currentIdx ? C.primaryLight : 'transparent', color: i === currentIdx ? C.primary : C.muted, fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer', fontFamily: font }}>{i + 1}</button>
-          ))}
-        </div>
-        <button onClick={() => setCurrentIdx(i => Math.min(questions.length - 1, i + 1))} disabled={currentIdx === questions.length - 1}
-          style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.6rem 1.2rem', background: currentIdx === questions.length - 1 ? '#fff' : 'linear-gradient(135deg, #2563eb, #1d4ed8)', border: currentIdx === questions.length - 1 ? `1.5px solid ${C.border}` : 'none', borderRadius: '9px', fontWeight: '700', cursor: currentIdx === questions.length - 1 ? 'not-allowed' : 'pointer', color: currentIdx === questions.length - 1 ? C.muted : '#fff', fontSize: '0.875rem', fontFamily: font, opacity: currentIdx === questions.length - 1 ? 0.5 : 1, boxShadow: currentIdx === questions.length - 1 ? 'none' : '0 2px 8px rgba(37,99,235,0.3)' }}>
+        </motion.button>
+        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '600' }}>{currentIdx + 1} / {questions.length}</span>
+        <motion.button whileHover={currentIdx < questions.length - 1 ? { scale: 1.03 } : {}} whileTap={currentIdx < questions.length - 1 ? { scale: 0.97 } : {}}
+          onClick={() => setCurrentIdx(i => Math.min(questions.length - 1, i + 1))} disabled={currentIdx === questions.length - 1}
+          className="btn-primary"
+          style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.6rem 1.2rem', fontSize: '0.875rem', opacity: currentIdx === questions.length - 1 ? 0.4 : 1, cursor: currentIdx === questions.length - 1 ? 'not-allowed' : 'pointer' }}>
           Next <ChevronRight size={15} />
-        </button>
+        </motion.button>
       </div>
 
-      {/* ── Submit modal ── */}
-      {modal === 'submit' && (
-        <ConfirmModal
-          title="Submit Exam?"
-          message={<>You've answered <strong>{answeredCount}</strong> of <strong>{questions.length}</strong> questions.{questions.length - answeredCount > 0 && <> <strong style={{ color: C.danger }}>{questions.length - answeredCount} unanswered</strong> will count as incorrect.</>} This cannot be undone.</>}
-          confirmLabel="Submit Now"
-          confirmColor="linear-gradient(135deg, #dc2626, #b91c1c)"
-          onConfirm={doSubmit}
-          onCancel={() => setModal(null)}
-        />
-      )}
-
-      {/* ── Cancel modal ── */}
-      {modal === 'cancel' && (
-        <ConfirmModal
-          title="Cancel Exam?"
-          message="Your progress will be lost and this attempt will be discarded. Are you sure you want to exit?"
-          confirmLabel="Yes, Cancel"
-          confirmColor="linear-gradient(135deg, #64748b, #475569)"
-          onConfirm={() => { setModal(null); onCancel(); }}
-          onCancel={() => setModal(null)}
-        />
-      )}
+      <AnimatePresence>
+        {modal === 'submit' && (
+          <ConfirmModal
+            title="Submit Exam?"
+            message={<>You've answered <strong>{answeredCount}</strong> of <strong>{questions.length}</strong> questions.{questions.length - answeredCount > 0 && <> <strong style={{ color: 'var(--danger)' }}>{questions.length - answeredCount} unanswered</strong> will count as incorrect.</>} This cannot be undone.</>}
+            confirmLabel="Submit Now"
+            confirmDanger
+            onConfirm={doSubmit}
+            onCancel={() => setModal(null)}
+          />
+        )}
+        {modal === 'cancel' && (
+          <ConfirmModal
+            title="Cancel Exam?"
+            message="Your progress will be lost and this attempt will be discarded. Are you sure you want to exit?"
+            confirmLabel="Yes, Cancel"
+            confirmDanger={false}
+            onConfirm={() => { setModal(null); onCancel(); }}
+            onCancel={() => setModal(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

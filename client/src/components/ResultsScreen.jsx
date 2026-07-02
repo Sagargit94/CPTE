@@ -1,27 +1,17 @@
 import React, { useState } from 'react';
-
-const C = {
-  primary: '#2563eb',
-  success: '#16a34a',
-  danger: '#dc2626',
-  bg: '#f8fafc',
-  card: '#ffffff',
-  text: '#1e293b',
-  muted: '#64748b',
-  border: '#e2e8f0',
-};
+import { motion } from 'framer-motion';
+import { Home, CheckCircle, XCircle, Flag } from 'lucide-react';
 
 const DOMAIN_COLORS = {
-  Musculoskeletal: '#2563eb',
-  Neuromuscular: '#7c3aed',
-  Cardiopulmonary: '#dc2626',
-  Integumentary: '#d97706',
-  'Other Systems': '#059669',
-  'Non-Systems': '#0891b2',
+  Musculoskeletal:  'var(--primary)',
+  Neuromuscular:    '#7c3aed',
+  Cardiopulmonary:  'var(--danger)',
+  Integumentary:    'var(--accent)',
+  'Other Systems':  'var(--success)',
+  'Non-Systems':    '#0891b2',
 };
 
 const OPTION_LABELS = ['A', 'B', 'C', 'D'];
-
 const FILTERS = ['All', 'Incorrect', 'Flagged', 'Unanswered'];
 
 export default function ResultsScreen({ attempt, onHome }) {
@@ -32,215 +22,196 @@ export default function ResultsScreen({ attempt, onHome }) {
   const score = attemptData.score ?? 0;
   const total = questions.length;
 
-  // Build lookup maps
   const answerMap = {};
   (answers || []).forEach(a => { answerMap[a.question_id] = a; });
 
-  const questionMap = {};
-  (questions || []).forEach(q => { questionMap[q.id] = q; });
-
-  // Domain breakdown
   const domainStats = {};
   questions.forEach(q => {
     if (!domainStats[q.domain]) domainStats[q.domain] = { correct: 0, total: 0 };
     domainStats[q.domain].total++;
     const ans = answerMap[q.id];
-    if (ans?.selected_option_index === q.correct_option_index) {
-      domainStats[q.domain].correct++;
-    }
+    if (ans?.selected_option_index === q.correct_option_index) domainStats[q.domain].correct++;
   });
 
   const correctCount = Math.round((score / 100) * total);
+  const pass = score >= 70;
 
-  // Filtered question list
   const filteredQuestions = questions.filter(q => {
     const ans = answerMap[q.id];
-    if (filter === 'Incorrect') return ans?.selected_option_index !== q.correct_option_index;
-    if (filter === 'Flagged') return ans?.is_flagged;
+    if (filter === 'Incorrect')  return ans?.selected_option_index !== q.correct_option_index;
+    if (filter === 'Flagged')    return ans?.is_flagged;
     if (filter === 'Unanswered') return ans?.selected_option_index == null;
     return true;
   });
 
-  const scoreColor = score >= 70 ? C.success : score >= 50 ? '#d97706' : C.danger;
-  const mode = attemptData.mode;
-
-  // SVG circle for score ring
   const radius = 56;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (score / 100) * circumference;
+  const scoreColor = score >= 70 ? 'var(--success)' : score >= 50 ? 'var(--warning)' : 'var(--danger)';
+  const scoreRaw   = score >= 70 ? '#059669'        : score >= 50 ? '#d97706'        : '#e11d48';
 
   return (
-    <div style={{ minHeight: '100vh', background: C.bg }}>
-      {/* Header */}
-      <div style={{ background: C.card, borderBottom: `1px solid ${C.border}`, padding: '1rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ fontWeight: '800', fontSize: '1.2rem', color: C.primary }}>CPTE Exam Prep</div>
-        <button
-          onClick={onHome}
-          style={{ padding: '0.5rem 1.25rem', background: C.primary, color: '#fff', border: 'none', borderRadius: '0.6rem', fontWeight: '700', cursor: 'pointer' }}
-        >
-          ← Back to Home
-        </button>
-      </div>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-body)' }}>
 
-      <div style={{ maxWidth: '900px', margin: '0 auto', padding: '2rem 1.5rem' }}>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: '800', color: C.text, marginBottom: '0.25rem' }}>
-          {mode === 'practice' ? 'Practice Session' : 'Mock Exam'} Results
-        </h1>
-        <p style={{ color: C.muted, marginBottom: '2rem' }}>
-          Submitted · {correctCount} of {total} correct
-        </p>
+      {/* Header */}
+      <header style={{ background: 'var(--bg-card)', borderBottom: '1px solid var(--border)', padding: '0 1.75rem', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: 'var(--shadow-sm)', position: 'sticky', top: 0, zIndex: 100 }}>
+        <div style={{ fontWeight: '800', fontSize: '1.05rem', color: 'var(--primary)', fontFamily: 'var(--font-head)' }}>CPTE Prep · Results</div>
+        <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+          onClick={onHome} className="btn-primary"
+          style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}>
+          <Home size={14} /> Back to Home
+        </motion.button>
+      </header>
+
+      <div style={{ maxWidth: '900px', margin: '0 auto', padding: '2rem 1.25rem' }}>
+
+        {/* Title */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: '900', color: 'var(--text)', marginBottom: '0.25rem', fontFamily: 'var(--font-head)', letterSpacing: '-0.03em' }}>
+            {attemptData.mode === 'practice' ? 'Practice Session' : 'Mock Exam'} Results
+          </h1>
+          <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontSize: '0.9rem' }}>
+            {correctCount} of {total} correct · {attemptData.mode === 'mock' ? 'Timed exam' : 'Practice mode'}
+          </p>
+        </motion.div>
 
         {/* Score ring + domain breakdown */}
         <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', marginBottom: '2rem' }}>
+
           {/* Score ring */}
-          <div style={{ background: C.card, borderRadius: '1rem', boxShadow: '0 2px 16px rgba(0,0,0,0.06)', padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', flex: '0 0 200px' }}>
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}
+            className="card"
+            style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', flex: '0 0 210px' }}>
             <svg width="140" height="140" style={{ transform: 'rotate(-90deg)' }}>
-              <circle cx="70" cy="70" r={radius} stroke={C.border} strokeWidth="10" fill="none" />
-              <circle
+              <circle cx="70" cy="70" r={radius} stroke="var(--border)" strokeWidth="10" fill="none" />
+              <motion.circle
                 cx="70" cy="70" r={radius}
-                stroke={scoreColor}
+                stroke={scoreRaw}
                 strokeWidth="10"
                 fill="none"
                 strokeDasharray={circumference}
-                strokeDashoffset={offset}
+                initial={{ strokeDashoffset: circumference }}
+                animate={{ strokeDashoffset: offset }}
+                transition={{ duration: 1.2, ease: 'easeOut', delay: 0.2 }}
                 strokeLinecap="round"
-                style={{ transition: 'stroke-dashoffset 1s ease' }}
               />
             </svg>
             <div style={{ marginTop: '-1rem', textAlign: 'center' }}>
-              <div style={{ fontSize: '2rem', fontWeight: '800', color: scoreColor }}>{score.toFixed(0)}%</div>
-              <div style={{ fontSize: '0.8rem', color: C.muted, fontWeight: '600' }}>
-                {score >= 70 ? 'Passing' : 'Below Passing'}
+              <div style={{ fontSize: '2rem', fontWeight: '900', color: scoreColor, fontFamily: 'var(--font-head)', letterSpacing: '-0.04em' }}>{score.toFixed(0)}%</div>
+              <div style={{ fontSize: '0.8rem', color: pass ? 'var(--success)' : 'var(--danger)', fontWeight: '700', marginTop: '0.2rem' }}>
+                {pass ? '✓ Passing' : '✗ Below Passing'}
               </div>
             </div>
-          </div>
+            <div style={{ marginTop: '1rem', padding: '0.5rem 0.9rem', borderRadius: '9999px', background: pass ? 'var(--success-light)' : 'var(--danger-light)', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: '700', color: pass ? 'var(--success)' : 'var(--danger)' }}>
+              {pass ? <CheckCircle size={12} /> : <XCircle size={12} />} {pass ? 'PASS' : 'FAIL'}
+            </div>
+          </motion.div>
 
           {/* Domain bars */}
-          <div style={{ background: C.card, borderRadius: '1rem', boxShadow: '0 2px 16px rgba(0,0,0,0.06)', padding: '1.5rem', flex: '1 1 300px' }}>
-            <div style={{ fontWeight: '700', marginBottom: '1rem', color: C.text }}>Performance by Domain</div>
+          <motion.div initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }}
+            className="card"
+            style={{ padding: '1.5rem', flex: '1 1 300px' }}>
+            <div style={{ fontWeight: '800', marginBottom: '1.25rem', color: 'var(--text)', fontFamily: 'var(--font-head)', fontSize: '1rem' }}>Performance by Domain</div>
             {Object.entries(domainStats).map(([domain, { correct, total: dt }]) => {
               const pct = dt > 0 ? (correct / dt) * 100 : 0;
-              const color = DOMAIN_COLORS[domain] || C.primary;
+              const barColor = pct >= 70 ? '#059669' : pct >= 50 ? '#d97706' : '#e11d48';
+              const domainColor = DOMAIN_COLORS[domain] || 'var(--primary)';
               return (
-                <div key={domain} style={{ marginBottom: '0.75rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: '600', color: C.text, marginBottom: '0.3rem' }}>
-                    <span>{domain}</span>
-                    <span style={{ color: C.muted }}>{correct}/{dt}</span>
+                <div key={domain} style={{ marginBottom: '0.85rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text)', marginBottom: '0.35rem' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: domainColor, display: 'inline-block' }} />
+                      {domain}
+                    </span>
+                    <span style={{ color: 'var(--text-muted)' }}>{correct}/{dt}</span>
                   </div>
-                  <div style={{ height: '8px', background: C.border, borderRadius: '999px', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: '999px', transition: 'width 0.8s ease' }} />
+                  <div style={{ height: '8px', background: 'var(--bg-subtle)', borderRadius: '999px', overflow: 'hidden' }}>
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.9, delay: 0.3, ease: 'easeOut' }}
+                      style={{ height: '100%', background: barColor, borderRadius: '999px' }} />
                   </div>
                 </div>
               );
             })}
-          </div>
+          </motion.div>
         </div>
 
         {/* Question review */}
-        <div style={{ background: C.card, borderRadius: '1rem', boxShadow: '0 2px 16px rgba(0,0,0,0.06)', padding: '1.5rem' }}>
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+          className="card" style={{ padding: '1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <div style={{ fontWeight: '700', fontSize: '1.05rem', color: C.text }}>Question Review</div>
+            <div style={{ fontWeight: '800', fontSize: '1.05rem', color: 'var(--text)', fontFamily: 'var(--font-head)' }}>Question Review</div>
             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
               {FILTERS.map(f => (
-                <button
-                  key={f}
+                <motion.button key={f} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
                   onClick={() => setFilter(f)}
-                  style={{
-                    padding: '0.35rem 0.85rem',
-                    border: `1.5px solid ${filter === f ? C.primary : C.border}`,
-                    borderRadius: '999px',
-                    background: filter === f ? C.primary : 'transparent',
-                    color: filter === f ? '#fff' : C.muted,
-                    fontSize: '0.8rem',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                  }}
-                >
+                  style={{ padding: '0.35rem 0.85rem', border: `1.5px solid ${filter === f ? 'var(--primary)' : 'var(--border)'}`, borderRadius: '999px', background: filter === f ? 'var(--primary)' : 'transparent', color: filter === f ? '#fff' : 'var(--text-muted)', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
                   {f}
-                </button>
+                </motion.button>
               ))}
             </div>
           </div>
 
           {filteredQuestions.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '2rem', color: C.muted }}>No questions match this filter.</div>
-          ) : (
-            filteredQuestions.map((q, i) => {
-              const ans = answerMap[q.id];
-              const selected = ans?.selected_option_index;
-              const correct = q.correct_option_index;
-              const isCorrect = selected === correct;
-              const isUnanswered = selected == null;
-              const isFlagged = ans?.is_flagged;
-              const isExpanded = expandedQ === q.id;
-              const qNum = questions.indexOf(q) + 1;
+            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>No questions match this filter.</div>
+          ) : filteredQuestions.map((q) => {
+            const ans = answerMap[q.id];
+            const selected = ans?.selected_option_index;
+            const correct = q.correct_option_index;
+            const isCorrect = selected === correct;
+            const isUnanswered = selected == null;
+            const isFlagged = ans?.is_flagged;
+            const isExpanded = expandedQ === q.id;
+            const qNum = questions.indexOf(q) + 1;
 
-              return (
-                <div key={q.id} style={{ border: `1.5px solid ${C.border}`, borderRadius: '0.75rem', marginBottom: '0.65rem', overflow: 'hidden' }}>
-                  {/* Question row */}
-                  <div
-                    onClick={() => setExpandedQ(isExpanded ? null : q.id)}
-                    style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.85rem 1rem', cursor: 'pointer', background: isExpanded ? '#f8fafc' : C.card, userSelect: 'none' }}
-                  >
-                    <span style={{
-                      width: '1.5rem',
-                      height: '1.5rem',
-                      minWidth: '1.5rem',
-                      borderRadius: '50%',
-                      background: isUnanswered ? C.muted : isCorrect ? C.success : C.danger,
-                      color: '#fff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '0.75rem',
-                      fontWeight: '700',
-                      flexShrink: 0,
-                      marginTop: '0.1rem',
-                    }}>
-                      {isUnanswered ? '?' : isCorrect ? '✓' : '✗'}
-                    </span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '0.75rem', color: C.muted, fontWeight: '600', marginBottom: '0.2rem' }}>
-                        Q{qNum} · {q.domain} {isFlagged ? '🚩' : ''}
-                      </div>
-                      <div style={{ fontSize: '0.9rem', color: C.text, lineHeight: '1.45', fontWeight: '500' }}>
-                        {q.question_text.length > 120 ? q.question_text.slice(0, 120) + '…' : q.question_text}
-                      </div>
+            return (
+              <div key={q.id} style={{ border: '1.5px solid var(--border)', borderRadius: 'var(--radius)', marginBottom: '0.65rem', overflow: 'hidden' }}>
+                <div
+                  onClick={() => setExpandedQ(isExpanded ? null : q.id)}
+                  style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.85rem 1rem', cursor: 'pointer', background: isExpanded ? 'var(--bg-subtle)' : 'var(--bg-card)', userSelect: 'none', transition: 'background 0.15s' }}>
+                  <span style={{ width: '1.5rem', height: '1.5rem', minWidth: '1.5rem', borderRadius: '50%', background: isUnanswered ? 'var(--text-muted)' : isCorrect ? 'var(--success)' : 'var(--danger)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: '700', flexShrink: 0, marginTop: '0.1rem' }}>
+                    {isUnanswered ? '?' : isCorrect ? '✓' : '✗'}
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: '600', marginBottom: '0.2rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      Q{qNum} · {q.domain} {isFlagged && <Flag size={10} color="var(--accent)" fill="var(--accent)" />}
                     </div>
-                    <span style={{ color: C.muted, fontSize: '0.85rem', flexShrink: 0 }}>{isExpanded ? '▲' : '▼'}</span>
+                    <div style={{ fontSize: '0.9rem', color: 'var(--text)', lineHeight: '1.45', fontWeight: '500' }}>
+                      {q.question_text.length > 120 ? q.question_text.slice(0, 120) + '…' : q.question_text}
+                    </div>
                   </div>
-
-                  {/* Expanded detail */}
-                  {isExpanded && (
-                    <div style={{ borderTop: `1px solid ${C.border}`, padding: '1rem 1.1rem', background: '#fafbfc' }}>
-                      <p style={{ fontSize: '0.95rem', color: C.text, lineHeight: '1.6', marginBottom: '1rem', fontWeight: '500' }}>{q.question_text}</p>
-                      <div>
-                        {[q.option_a, q.option_b, q.option_c, q.option_d].map((opt, idx) => {
-                          const isCorrectOpt = idx === correct;
-                          const isSelectedOpt = idx === selected;
-                          let borderColor = C.border, bg = C.card, textColor = C.text;
-                          if (isCorrectOpt) { borderColor = C.success; bg = '#f0fdf4'; textColor = C.success; }
-                          else if (isSelectedOpt && !isCorrect) { borderColor = C.danger; bg = '#fef2f2'; textColor = C.danger; }
-                          return (
-                            <div key={idx} style={{ display: 'flex', gap: '0.65rem', alignItems: 'flex-start', padding: '0.6rem 0.75rem', border: `1.5px solid ${borderColor}`, borderRadius: '0.6rem', marginBottom: '0.45rem', background: bg }}>
-                              <span style={{ fontWeight: '700', color: textColor, flexShrink: 0, width: '1.1rem' }}>{OPTION_LABELS[idx]}.</span>
-                              <span style={{ fontSize: '0.875rem', color: textColor, lineHeight: '1.4' }}>{opt}</span>
-                              {isCorrectOpt && <span style={{ marginLeft: 'auto', color: C.success, fontWeight: '700', flexShrink: 0 }}>✓ Correct</span>}
-                              {isSelectedOpt && !isCorrectOpt && <span style={{ marginLeft: 'auto', color: C.danger, fontWeight: '700', flexShrink: 0 }}>Your answer</span>}
-                            </div>
-                          );
-                        })}
-                      </div>
-                      <div style={{ marginTop: '1rem', padding: '0.85rem', background: '#eff6ff', border: `1px solid #bfdbfe`, borderRadius: '0.6rem', fontSize: '0.875rem', color: C.text, lineHeight: '1.55' }}>
-                        <span style={{ fontWeight: '700', color: C.primary }}>Rationale: </span>{q.rationale}
-                      </div>
-                    </div>
-                  )}
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', flexShrink: 0 }}>{isExpanded ? '▲' : '▼'}</span>
                 </div>
-              );
-            })
-          )}
-        </div>
+
+                {isExpanded && (
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                    style={{ borderTop: '1px solid var(--border)', padding: '1rem 1.1rem', background: 'var(--bg-subtle)' }}>
+                    <p style={{ fontSize: '0.95rem', color: 'var(--text)', lineHeight: '1.6', marginBottom: '1rem', fontWeight: '500' }}>{q.question_text}</p>
+                    <div>
+                      {[q.option_a, q.option_b, q.option_c, q.option_d].map((opt, idx) => {
+                        const isCorrectOpt = idx === correct;
+                        const isSelectedOpt = idx === selected;
+                        let borderColor = 'var(--border)', bg = 'var(--bg-card)', textColor = 'var(--text)';
+                        if (isCorrectOpt) { borderColor = 'var(--success)'; bg = 'var(--success-light)'; textColor = 'var(--success)'; }
+                        else if (isSelectedOpt && !isCorrect) { borderColor = 'var(--danger)'; bg = 'var(--danger-light)'; textColor = 'var(--danger)'; }
+                        return (
+                          <div key={idx} style={{ display: 'flex', gap: '0.65rem', alignItems: 'flex-start', padding: '0.6rem 0.75rem', border: `1.5px solid ${borderColor}`, borderRadius: 'var(--radius-sm)', marginBottom: '0.45rem', background: bg }}>
+                            <span style={{ fontWeight: '700', color: textColor, flexShrink: 0, width: '1.1rem' }}>{OPTION_LABELS[idx]}.</span>
+                            <span style={{ fontSize: '0.875rem', color: textColor, lineHeight: '1.4' }}>{opt}</span>
+                            {isCorrectOpt && <span style={{ marginLeft: 'auto', color: 'var(--success)', fontWeight: '700', flexShrink: 0, fontSize: '0.8rem' }}>✓ Correct</span>}
+                            {isSelectedOpt && !isCorrectOpt && <span style={{ marginLeft: 'auto', color: 'var(--danger)', fontWeight: '700', flexShrink: 0, fontSize: '0.8rem' }}>Your answer</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div style={{ marginTop: '1rem', padding: '0.85rem', background: 'var(--primary-light)', border: '1px solid var(--primary-mid)', borderRadius: 'var(--radius-sm)', fontSize: '0.875rem', color: 'var(--text)', lineHeight: '1.55' }}>
+                      <span style={{ fontWeight: '700', color: 'var(--primary)' }}>Rationale: </span>{q.rationale}
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+            );
+          })}
+        </motion.div>
       </div>
     </div>
   );

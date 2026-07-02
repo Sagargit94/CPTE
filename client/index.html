@@ -1,28 +1,149 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CPTE Exam Prep · CAPR</title>
     <meta name="description" content="Comprehensive CPTE practice questions aligned with the CAPR blueprint." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <style>
+      /* ── Design tokens ── */
+      :root {
+        --bg:           #f4f6f9;
+        --bg-card:      #ffffff;
+        --bg-subtle:    #eef1f6;
+        --bg-hover:     #e8ecf3;
+        --border:       #dde2ec;
+        --border-focus: #0d5c73;
+        --text:         #0d1117;
+        --text-mid:     #334155;
+        --text-muted:   #64748b;
+        --text-subtle:  #94a3b8;
+
+        --primary:        #0d5c73;
+        --primary-hover:  #0a4d62;
+        --primary-light:  #e6f4f8;
+        --primary-mid:    #bfe3ed;
+
+        --accent:       #c8921a;
+        --accent-hover: #a87514;
+        --accent-light: #fef5e4;
+
+        --success:      #059669;
+        --success-light:#ecfdf5;
+        --danger:       #e11d48;
+        --danger-light: #fff1f2;
+        --warning:      #d97706;
+        --warning-light:#fffbeb;
+
+        --shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
+        --shadow-sm: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+        --shadow:    0 4px 16px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+        --shadow-lg: 0 20px 48px rgba(0,0,0,0.12), 0 8px 16px rgba(0,0,0,0.06);
+
+        --radius-xs: 4px;
+        --radius-sm: 6px;
+        --radius:    10px;
+        --radius-lg: 14px;
+        --radius-xl: 20px;
+
+        --font-head: 'Plus Jakarta Sans', system-ui, sans-serif;
+        --font-body: 'Inter', system-ui, sans-serif;
+      }
+
+      [data-theme="dark"] {
+        --bg:           #080e1a;
+        --bg-card:      #0f1729;
+        --bg-subtle:    #162035;
+        --bg-hover:     #1d2a42;
+        --border:       #1e2d48;
+        --border-focus: #14b8d4;
+        --text:         #f0f4fa;
+        --text-mid:     #cbd5e1;
+        --text-muted:   #8b9ab5;
+        --text-subtle:  #4d607a;
+
+        --primary:        #14b8d4;
+        --primary-hover:  #22d3ee;
+        --primary-light:  rgba(20,184,212,0.12);
+        --primary-mid:    rgba(20,184,212,0.25);
+
+        --accent:       #e6a820;
+        --accent-hover: #f0b830;
+        --accent-light: rgba(230,168,32,0.12);
+
+        --success:      #10b981;
+        --success-light:rgba(16,185,129,0.1);
+        --danger:       #f43f5e;
+        --danger-light: rgba(244,63,94,0.1);
+        --warning:      #f59e0b;
+        --warning-light:rgba(245,158,11,0.1);
+
+        --shadow-xs: 0 1px 2px rgba(0,0,0,0.3);
+        --shadow-sm: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.2);
+        --shadow:    0 4px 16px rgba(0,0,0,0.35), 0 2px 4px rgba(0,0,0,0.2);
+        --shadow-lg: 0 20px 48px rgba(0,0,0,0.5), 0 8px 16px rgba(0,0,0,0.3);
+      }
+
+      /* ── Reset ── */
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-      html { scroll-behavior: smooth; }
+      html { scroll-behavior: smooth; height: 100%; }
       body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
-        background: #f1f5f9;
-        color: #1e293b;
+        font-family: var(--font-body);
+        background: var(--bg);
+        color: var(--text);
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
-        line-height: 1.5;
+        line-height: 1.55;
+        min-height: 100%;
+        transition: background 0.2s, color 0.2s;
       }
-      button { font-family: inherit; }
-      input, textarea, select { font-family: inherit; }
+      #root { min-height: 100vh; }
+      button, input, select, textarea { font-family: var(--font-body); }
+      h1,h2,h3,h4,h5,h6 { font-family: var(--font-head); }
+
+      /* ── Scrollbar ── */
       ::-webkit-scrollbar { width: 5px; height: 5px; }
       ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
-      ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+      ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+      ::-webkit-scrollbar-thumb:hover { background: var(--text-subtle); }
+
+      /* ── Focus ── */
+      :focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; border-radius: var(--radius-sm); }
+
+      /* ── Utilities ── */
+      .card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+      }
+      .btn-primary {
+        display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem;
+        padding: 0.65rem 1.35rem;
+        background: var(--primary); color: #fff;
+        border: none; border-radius: var(--radius);
+        font-family: var(--font-body); font-weight: 700; font-size: 0.875rem;
+        cursor: pointer; box-shadow: 0 2px 8px rgba(13,92,115,0.3);
+        transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+      }
+      .btn-primary:hover { background: var(--primary-hover); box-shadow: 0 4px 12px rgba(13,92,115,0.4); }
+      .btn-primary:active { transform: scale(0.98); }
+      .btn-ghost {
+        display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+        padding: 0.55rem 1rem;
+        background: transparent; color: var(--text-muted);
+        border: 1px solid var(--border); border-radius: var(--radius);
+        font-family: var(--font-body); font-weight: 600; font-size: 0.825rem;
+        cursor: pointer; transition: background 0.15s, color 0.15s;
+      }
+      .btn-ghost:hover { background: var(--bg-hover); color: var(--text); }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+      }
     </style>
   </head>
   <body>

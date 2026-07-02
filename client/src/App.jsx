@@ -1,11 +1,27 @@
 import React, { useState, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { supabase } from './lib/supabaseClient.js';
 import { startAttempt } from './lib/api.js';
+import { ThemeProvider } from './lib/theme.jsx';
 import AuthScreen from './components/AuthScreen.jsx';
 import HomeScreen from './components/HomeScreen.jsx';
 import ExamScreen from './components/ExamScreen.jsx';
 import ResultsScreen from './components/ResultsScreen.jsx';
 import DashboardScreen from './components/DashboardScreen.jsx';
+
+const pageVariants = {
+  initial: { opacity: 0, y: 10 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.22, ease: [0.4, 0, 0.2, 1] } },
+  exit:    { opacity: 0, y: -6, transition: { duration: 0.15, ease: [0.4, 0, 1, 1] } },
+};
+
+function Page({ children }) {
+  return (
+    <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit" style={{ minHeight: '100vh' }}>
+      {children}
+    </motion.div>
+  );
+}
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -16,27 +32,18 @@ export default function App() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
+      setSession(session); setUser(session?.user ?? null); setLoading(false);
     });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      setSession(session); setUser(session?.user ?? null);
     });
-
     return () => subscription.unsubscribe();
   }, []);
 
   async function handleStartExam(templateId, mode) {
-    try {
-      const result = await startAttempt(templateId, mode);
-      setCurrentAttempt(result);
-      setCurrentScreen('exam');
-    } catch (err) {
-      alert('Failed to start exam: ' + err.message);
-    }
+    const result = await startAttempt(templateId, mode);
+    setCurrentAttempt(result);
+    setCurrentScreen('exam');
   }
 
   function handleExamFinish(attempt) {
@@ -44,35 +51,50 @@ export default function App() {
     setCurrentScreen('results');
   }
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
-        <div style={{ color: '#64748b', fontSize: '1.1rem' }}>Loading...</div>
+  function handleCancel() {
+    setCurrentAttempt(null);
+    setCurrentScreen('home');
+  }
+
+  if (loading) return (
+    <ThemeProvider>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg)' }}>
+        <motion.div
+          animate={{ opacity: [0.4, 1, 0.4] }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+          style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)', fontSize: '0.9rem', fontWeight: 600 }}
+        >
+          Loading…
+        </motion.div>
       </div>
-    );
-  }
-
-  if (!user) {
-    return <AuthScreen />;
-  }
-
-  if (currentScreen === 'exam' && currentAttempt) {
-    return <ExamScreen attempt={currentAttempt} onFinish={handleExamFinish} onCancel={() => { setCurrentAttempt(null); setCurrentScreen('home'); }} />;
-  }
-
-  if (currentScreen === 'results' && currentAttempt) {
-    return <ResultsScreen attempt={currentAttempt} onHome={() => setCurrentScreen('home')} />;
-  }
-
-  if (currentScreen === 'dashboard') {
-    return <DashboardScreen onHome={() => setCurrentScreen('home')} />;
-  }
+    </ThemeProvider>
+  );
 
   return (
-    <HomeScreen
-      user={user}
-      onStartExam={handleStartExam}
-      onDashboard={() => setCurrentScreen('dashboard')}
-    />
+    <ThemeProvider>
+      <AnimatePresence mode="wait">
+        {!user && <Page key="auth"><AuthScreen /></Page>}
+        {user && currentScreen === 'exam' && currentAttempt && (
+          <Page key="exam">
+            <ExamScreen attempt={currentAttempt} onFinish={handleExamFinish} onCancel={handleCancel} />
+          </Page>
+        )}
+        {user && currentScreen === 'results' && currentAttempt && (
+          <Page key="results">
+            <ResultsScreen attempt={currentAttempt} onHome={() => { setCurrentAttempt(null); setCurrentScreen('home'); }} />
+          </Page>
+        )}
+        {user && currentScreen === 'dashboard' && (
+          <Page key="dashboard">
+            <DashboardScreen onHome={() => setCurrentScreen('home')} />
+          </Page>
+        )}
+        {user && currentScreen === 'home' && (
+          <Page key="home">
+            <HomeScreen user={user} onStartExam={handleStartExam} onDashboard={() => setCurrentScreen('dashboard')} />
+          </Page>
+        )}
+      </AnimatePresence>
+    </ThemeProvider>
   );
 }
