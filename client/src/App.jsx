@@ -5,6 +5,7 @@ import AuthScreen from './components/AuthScreen.jsx';
 import HomeScreen from './components/HomeScreen.jsx';
 import ExamScreen from './components/ExamScreen.jsx';
 import ResultsScreen from './components/ResultsScreen.jsx';
+import DashboardScreen from './components/DashboardScreen.jsx';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -63,5 +64,15 @@ export default function App() {
     return <ResultsScreen attempt={currentAttempt} onHome={() => setCurrentScreen('home')} />;
   }
 
-  return <HomeScreen user={user} onStartExam={handleStartExam} />;
+  if (currentScreen === 'dashboard') {
+    return <DashboardScreen onHome={() => setCurrentScreen('home')} />;
+  }
+
+  return (
+    <HomeScreen
+      user={user}
+      onStartExam={handleStartExam}
+      onDashboard={() => setCurrentScreen('dashboard')}
+    />
+  );
 }

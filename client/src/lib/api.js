@@ -47,3 +47,6 @@ export const saveAnswer = (attemptId, question_id, selected_option_index, is_fla
 
 export const submitAttempt = (id) =>
   apiFetch(`/api/attempts/${id}/submit`, { method: 'POST' });
+
+export const getHistory = () => apiFetch('/api/attempts/history');
+export const getDashboard = () => apiFetch('/api/attempts/dashboard');
