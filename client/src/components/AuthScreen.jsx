@@ -1,370 +1,341 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabaseClient.js';
+import { Eye, EyeOff, Stethoscope, ArrowLeft, Mail, Lock, User } from 'lucide-react';
 
 const s = {
   page: {
     minHeight: '100vh',
     display: 'flex',
+    background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0c1a2e 100%)',
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+  },
+  left: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    padding: '3rem',
+    color: '#fff',
+  },
+  right: {
+    width: '480px',
+    flexShrink: 0,
+    display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: 'linear-gradient(160deg, #0f172a 0%, #1e3a5f 60%, #0f172a 100%)',
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    padding: '1rem'
+    padding: '2rem',
+    background: 'rgba(255,255,255,0.03)',
+    backdropFilter: 'blur(20px)',
+    borderLeft: '1px solid rgba(255,255,255,0.08)',
   },
   card: {
     background: '#ffffff',
     borderRadius: '1.25rem',
-    boxShadow: '0 24px 64px rgba(0,0,0,0.35)',
-    padding: '2.75rem 2.5rem 2.25rem',
+    boxShadow: '0 32px 80px rgba(0,0,0,0.4)',
+    padding: '2.5rem',
     width: '100%',
-    maxWidth: '440px'
+    maxWidth: '400px',
   },
-  logoArea: {
-    textAlign: 'center',
-    marginBottom: '2rem',
-    paddingBottom: '1.75rem',
-    borderBottom: '1px solid #e2e8f0'
-  },
-  logoIcon: {
-    fontSize: '2.5rem',
-    marginBottom: '0.5rem'
-  },
-  appName: {
-    fontSize: '1.75rem',
-    fontWeight: '800',
-    color: '#0f172a',
-    letterSpacing: '-0.03em',
-    marginBottom: '0.25rem'
-  },
-  subtitle: {
-    fontSize: '0.875rem',
-    color: '#64748b',
-    fontWeight: '500'
-  },
-  heading: {
-    fontSize: '1.1rem',
-    fontWeight: '700',
-    color: '#1e293b',
-    marginBottom: '1.5rem'
-  },
-  label: {
-    display: 'block',
-    fontSize: '0.8rem',
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: '0.35rem',
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em'
-  },
-  inputWrap: {
-    position: 'relative',
-    display: 'flex',
-    alignItems: 'center'
-  },
-  input: {
-    width: '100%',
-    padding: '0.7rem 0.9rem',
-    border: '1.5px solid #e2e8f0',
-    borderRadius: '0.65rem',
-    fontSize: '0.975rem',
-    outline: 'none',
-    color: '#1e293b',
-    background: '#f8fafc',
-    boxSizing: 'border-box',
-    transition: 'border-color 0.2s, background 0.2s'
-  },
-  inputPasswordPadding: {
-    paddingRight: '2.75rem'
-  },
-  eyeBtn: {
-    position: 'absolute',
-    right: '0.75rem',
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    color: '#94a3b8',
-    padding: '0',
-    display: 'flex',
-    alignItems: 'center',
-    fontSize: '1.1rem',
-    lineHeight: 1
-  },
-  btn: {
-    width: '100%',
-    padding: '0.8rem',
-    background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '0.65rem',
-    fontSize: '1rem',
-    fontWeight: '700',
-    cursor: 'pointer',
-    marginTop: '0.5rem',
-    transition: 'opacity 0.2s, transform 0.1s',
-    letterSpacing: '0.01em'
-  },
-  toggle: {
-    textAlign: 'center',
-    marginTop: '1.25rem',
-    fontSize: '0.875rem',
-    color: '#64748b'
-  },
-  toggleBtn: {
-    background: 'none',
-    border: 'none',
-    color: '#2563eb',
-    fontWeight: '700',
-    cursor: 'pointer',
-    fontSize: '0.875rem',
-    padding: 0
-  },
-  forgotLink: {
-    background: 'none',
-    border: 'none',
-    color: '#2563eb',
-    fontWeight: '600',
-    cursor: 'pointer',
-    fontSize: '0.8rem',
-    padding: 0,
-    marginTop: '0.5rem',
-    display: 'inline-block',
-    textAlign: 'right',
-    width: '100%'
-  },
-  error: {
-    background: '#fee2e2',
-    border: '1px solid #fca5a5',
-    color: '#b91c1c',
-    borderRadius: '0.5rem',
-    padding: '0.65rem 0.9rem',
-    marginBottom: '1rem',
-    fontSize: '0.875rem',
-    fontWeight: '500'
-  },
-  success: {
-    background: '#dcfce7',
-    border: '1px solid #86efac',
-    color: '#166534',
-    borderRadius: '0.5rem',
-    padding: '0.65rem 0.9rem',
-    marginBottom: '1rem',
-    fontSize: '0.875rem',
-    fontWeight: '500'
-  },
-  fieldWrap: { marginBottom: '1rem' },
-  backBtn: {
-    background: 'none',
-    border: 'none',
-    color: '#2563eb',
-    fontWeight: '600',
-    cursor: 'pointer',
-    fontSize: '0.875rem',
-    padding: 0,
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.25rem',
-    marginBottom: '1.25rem'
-  }
 };
 
-function EyeIcon({ open }) {
-  return open ? (
-    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/>
-      <circle cx="12" cy="12" r="3"/>
-    </svg>
-  ) : (
-    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-      <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/>
-      <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/>
-      <line x1="1" y1="1" x2="23" y2="23"/>
-    </svg>
+function InputField({ icon: Icon, label, type, value, onChange, placeholder, error }) {
+  const [show, setShow] = useState(false);
+  const isPassword = type === 'password';
+  const actualType = isPassword ? (show ? 'text' : 'password') : type;
+
+  return (
+    <div style={{ marginBottom: '1rem' }}>
+      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>
+        {label}
+      </label>
+      <div style={{ position: 'relative' }}>
+        {Icon && (
+          <div style={{ position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }}>
+            <Icon size={16} />
+          </div>
+        )}
+        <input
+          type={actualType}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          placeholder={placeholder}
+          style={{
+            width: '100%',
+            padding: `0.7rem ${isPassword ? '2.75rem' : '0.9rem'} 0.7rem ${Icon ? '2.75rem' : '0.9rem'}`,
+            border: `1.5px solid ${error ? '#ef4444' : '#e5e7eb'}`,
+            borderRadius: '0.65rem',
+            fontSize: '0.9rem',
+            color: '#111827',
+            background: '#f9fafb',
+            outline: 'none',
+            boxSizing: 'border-box',
+            transition: 'border-color 0.15s',
+          }}
+          onFocus={e => { e.target.style.borderColor = '#2563eb'; e.target.style.background = '#fff'; }}
+          onBlur={e => { e.target.style.borderColor = error ? '#ef4444' : '#e5e7eb'; e.target.style.background = '#f9fafb'; }}
+        />
+        {isPassword && (
+          <button
+            type="button"
+            onClick={() => setShow(s => !s)}
+            style={{ position: 'absolute', right: '0.9rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: 0, display: 'flex' }}
+          >
+            {show ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
+        )}
+      </div>
+      {error && <div style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '0.3rem' }}>{error}</div>}
+    </div>
   );
 }
 
-function ForgotPasswordView({ onBack }) {
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [sent, setSent] = useState(false);
+function PrimaryBtn({ children, onClick, loading, type = 'button' }) {
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={loading}
+      style={{
+        width: '100%',
+        padding: '0.8rem',
+        background: loading ? '#93c5fd' : 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+        color: '#fff',
+        border: 'none',
+        borderRadius: '0.65rem',
+        fontWeight: '700',
+        fontSize: '0.95rem',
+        cursor: loading ? 'not-allowed' : 'pointer',
+        letterSpacing: '0.01em',
+        boxShadow: loading ? 'none' : '0 4px 12px rgba(37,99,235,0.35)',
+        transition: 'all 0.2s',
+      }}
+    >
+      {loading ? 'Please wait...' : children}
+    </button>
+  );
+}
 
-  async function handleSubmit(e) {
+function LoginView({ onSwitch, onForgot }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  async function handleLogin(e) {
     e.preventDefault();
     setError('');
     setLoading(true);
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin
-      });
-      if (error) throw error;
-      setSent(true);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) setError(error.message);
+    setLoading(false);
   }
 
   return (
-    <>
-      <button style={s.backBtn} onClick={onBack}>
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-          <path d="M19 12H5M12 5l-7 7 7 7"/>
-        </svg>
-        Back to sign in
-      </button>
-      <div style={s.heading}>Reset your password</div>
-      {sent ? (
-        <div style={s.success}>
-          Check your email! We sent a password reset link to <strong>{email}</strong>.
+    <form onSubmit={handleLogin}>
+      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+        <div style={{ width: '56px', height: '56px', background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.75rem' }}>
+          <Stethoscope size={28} color="#fff" />
         </div>
-      ) : (
-        <>
-          <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.25rem', marginTop: 0 }}>
-            Enter your email address and we'll send you a link to reset your password.
-          </p>
-          {error && <div style={s.error}>{error}</div>}
-          <form onSubmit={handleSubmit}>
-            <div style={s.fieldWrap}>
-              <label style={s.label}>Email address</label>
-              <div style={s.inputWrap}>
-                <input
-                  style={s.input}
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  required
-                  autoFocus
-                />
-              </div>
-            </div>
-            <button style={{ ...s.btn, opacity: loading ? 0.7 : 1 }} type="submit" disabled={loading}>
-              {loading ? 'Sending...' : 'Send Reset Link'}
-            </button>
-          </form>
-        </>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#111827', margin: '0 0 0.25rem' }}>Welcome back</h1>
+        <p style={{ color: '#6b7280', fontSize: '0.875rem', margin: 0 }}>Sign in to your CPTE account</p>
+      </div>
+
+      {error && (
+        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.6rem', padding: '0.75rem 1rem', marginBottom: '1rem', color: '#b91c1c', fontSize: '0.85rem', fontWeight: '500' }}>
+          {error}
+        </div>
       )}
-    </>
+
+      <InputField icon={Mail} label="Email address" type="email" value={email} onChange={setEmail} placeholder="you@example.com" />
+      <InputField icon={Lock} label="Password" type="password" value={password} onChange={setPassword} placeholder="••••••••" />
+
+      <div style={{ textAlign: 'right', marginBottom: '1.25rem', marginTop: '-0.5rem' }}>
+        <button type="button" onClick={onForgot} style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', padding: 0 }}>
+          Forgot password?
+        </button>
+      </div>
+
+      <PrimaryBtn type="submit" loading={loading}>Sign in</PrimaryBtn>
+
+      <p style={{ textAlign: 'center', fontSize: '0.875rem', color: '#6b7280', marginTop: '1.25rem', margin: '1.25rem 0 0' }}>
+        Don't have an account?{' '}
+        <button type="button" onClick={onSwitch} style={{ background: 'none', border: 'none', color: '#2563eb', fontWeight: '700', cursor: 'pointer', padding: 0 }}>
+          Sign up free
+        </button>
+      </p>
+    </form>
+  );
+}
+
+function SignupView({ onSwitch }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  async function handleSignup(e) {
+    e.preventDefault();
+    setError('');
+    if (password.length < 6) { setError('Password must be at least 6 characters'); return; }
+    setLoading(true);
+    const { error } = await supabase.auth.signUp({ email, password });
+    if (error) setError(error.message);
+    else setSuccess(true);
+    setLoading(false);
+  }
+
+  if (success) {
+    return (
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📬</div>
+        <h2 style={{ fontSize: '1.4rem', fontWeight: '800', color: '#111827', marginBottom: '0.5rem' }}>Check your email</h2>
+        <p style={{ color: '#6b7280', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>
+          We sent a confirmation link to <strong>{email}</strong>. Click it to activate your account.
+        </p>
+        <button onClick={onSwitch} style={{ background: 'none', border: 'none', color: '#2563eb', fontWeight: '700', cursor: 'pointer', fontSize: '0.9rem' }}>
+          Back to sign in
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSignup}>
+      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+        <div style={{ width: '56px', height: '56px', background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.75rem' }}>
+          <User size={28} color="#fff" />
+        </div>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#111827', margin: '0 0 0.25rem' }}>Create account</h1>
+        <p style={{ color: '#6b7280', fontSize: '0.875rem', margin: 0 }}>Start your CPTE exam prep today</p>
+      </div>
+
+      {error && (
+        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.6rem', padding: '0.75rem 1rem', marginBottom: '1rem', color: '#b91c1c', fontSize: '0.85rem', fontWeight: '500' }}>
+          {error}
+        </div>
+      )}
+
+      <InputField icon={Mail} label="Email address" type="email" value={email} onChange={setEmail} placeholder="you@example.com" />
+      <InputField icon={Lock} label="Password" type="password" value={password} onChange={setPassword} placeholder="Min. 6 characters" />
+
+      <div style={{ marginBottom: '1.25rem' }} />
+      <PrimaryBtn type="submit" loading={loading}>Create account</PrimaryBtn>
+
+      <p style={{ textAlign: 'center', fontSize: '0.875rem', color: '#6b7280', marginTop: '1.25rem', margin: '1.25rem 0 0' }}>
+        Already have an account?{' '}
+        <button type="button" onClick={onSwitch} style={{ background: 'none', border: 'none', color: '#2563eb', fontWeight: '700', cursor: 'pointer', padding: 0 }}>
+          Sign in
+        </button>
+      </p>
+    </form>
+  );
+}
+
+function ForgotView({ onBack }) {
+  const [email, setEmail] = useState('');
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  async function handleReset(e) {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin,
+    });
+    if (error) setError(error.message);
+    else setSent(true);
+    setLoading(false);
+  }
+
+  if (sent) {
+    return (
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✉️</div>
+        <h2 style={{ fontSize: '1.3rem', fontWeight: '800', color: '#111827', marginBottom: '0.5rem' }}>Reset link sent</h2>
+        <p style={{ color: '#6b7280', fontSize: '0.875rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>Check your inbox for a password reset link.</p>
+        <button onClick={onBack} style={{ background: 'none', border: 'none', color: '#2563eb', fontWeight: '700', cursor: 'pointer', fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+          <ArrowLeft size={14} /> Back to sign in
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleReset}>
+      <button type="button" onClick={onBack} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: 0, marginBottom: '1.5rem', fontWeight: '600' }}>
+        <ArrowLeft size={14} /> Back
+      </button>
+      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#111827', margin: '0 0 0.25rem' }}>Reset password</h1>
+        <p style={{ color: '#6b7280', fontSize: '0.875rem', margin: 0 }}>Enter your email to receive a reset link</p>
+      </div>
+      {error && (
+        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.6rem', padding: '0.75rem 1rem', marginBottom: '1rem', color: '#b91c1c', fontSize: '0.85rem' }}>
+          {error}
+        </div>
+      )}
+      <InputField icon={Mail} label="Email address" type="email" value={email} onChange={setEmail} placeholder="you@example.com" />
+      <div style={{ marginBottom: '1.25rem' }} />
+      <PrimaryBtn type="submit" loading={loading}>Send reset link</PrimaryBtn>
+    </form>
   );
 }
 
 export default function AuthScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLogin, setIsLogin] = useState(true);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [showForgot, setShowForgot] = useState(false);
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
-    setLoading(true);
-    try {
-      if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        setSuccess('Account created! Check your email to confirm, then sign in.');
-      }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function switchMode() {
-    setIsLogin(!isLogin);
-    setError('');
-    setSuccess('');
-  }
+  const [view, setView] = useState('login');
 
   return (
     <div style={s.page}>
-      <div style={s.card}>
-        <div style={s.logoArea}>
-          <div style={s.logoIcon}>🩺</div>
-          <div style={s.appName}>CPTE Exam Prep</div>
-          <div style={s.subtitle}>CPTE by CAPR — Physical Therapy Licensing Exam Practice</div>
-        </div>
-
-        {showForgot ? (
-          <ForgotPasswordView onBack={() => setShowForgot(false)} />
-        ) : (
-          <>
-            <div style={s.heading}>{isLogin ? 'Sign in to your account' : 'Create your account'}</div>
-            {error && <div style={s.error}>{error}</div>}
-            {success && <div style={s.success}>{success}</div>}
-            <form onSubmit={handleSubmit}>
-              <div style={s.fieldWrap}>
-                <label style={s.label}>Email address</label>
-                <div style={s.inputWrap}>
-                  <input
-                    style={s.input}
-                    type="email"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    required
-                    autoFocus
-                  />
-                </div>
-              </div>
-              <div style={s.fieldWrap}>
-                <label style={s.label}>Password</label>
-                <div style={s.inputWrap}>
-                  <input
-                    style={{ ...s.input, ...s.inputPasswordPadding }}
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                    minLength={6}
-                  />
-                  <button
-                    type="button"
-                    style={s.eyeBtn}
-                    onClick={() => setShowPassword(v => !v)}
-                    tabIndex={-1}
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  >
-                    <EyeIcon open={showPassword} />
-                  </button>
-                </div>
-                {isLogin && (
-                  <button
-                    type="button"
-                    style={s.forgotLink}
-                    onClick={() => { setShowForgot(true); setError(''); setSuccess(''); }}
-                  >
-                    Forgot password?
-                  </button>
-                )}
-              </div>
-              <button
-                style={{ ...s.btn, opacity: loading ? 0.7 : 1 }}
-                type="submit"
-                disabled={loading}
-              >
-                {loading ? 'Please wait...' : isLogin ? 'Sign In' : 'Create Account'}
-              </button>
-            </form>
-            <div style={s.toggle}>
-              {isLogin ? "Don't have an account? " : 'Already have an account? '}
-              <button style={s.toggleBtn} onClick={switchMode}>
-                {isLogin ? 'Sign Up' : 'Sign In'}
-              </button>
+      {/* Left panel - hidden on small screens */}
+      <div style={{ ...s.left, display: 'flex' }}>
+        <div style={{ maxWidth: '480px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '3rem' }}>
+            <div style={{ width: '40px', height: '40px', background: 'rgba(37,99,235,0.3)', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(37,99,235,0.5)' }}>
+              <Stethoscope size={20} color="#93c5fd" />
             </div>
-          </>
-        )}
+            <span style={{ fontSize: '1.1rem', fontWeight: '800', color: '#fff', letterSpacing: '-0.02em' }}>CPTE Exam Prep</span>
+          </div>
+
+          <div style={{ display: 'inline-block', background: 'rgba(37,99,235,0.2)', border: '1px solid rgba(37,99,235,0.4)', borderRadius: '9999px', padding: '0.3rem 1rem', fontSize: '0.75rem', color: '#93c5fd', fontWeight: '700', letterSpacing: '0.08em', marginBottom: '1.25rem', textTransform: 'uppercase' }}>
+            CAPR · CPTE Preparation
+          </div>
+
+          <h2 style={{ fontSize: 'clamp(1.75rem, 3vw, 2.5rem)', fontWeight: '900', lineHeight: 1.1, letterSpacing: '-0.04em', marginBottom: '1.25rem', margin: '0 0 1.25rem' }}>
+            <span style={{ background: 'linear-gradient(135deg, #fff 0%, #93c5fd 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              Pass the CPTE.<br />Start practicing today.
+            </span>
+          </h2>
+
+          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '1rem', lineHeight: 1.65, marginBottom: '2.5rem' }}>
+            Comprehensive practice questions aligned with the Canadian Physiotherapy Competency Examination (CPTE) by CAPR.
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+            {[
+              { icon: '📚', text: '100+ CPTE-aligned questions across 6 domains' },
+              { icon: '⚡', text: 'Instant feedback in Practice Mode' },
+              { icon: '⏱️', text: 'Timed Mock Exam with full CPTE simulation' },
+              { icon: '📊', text: 'Analytics dashboard to track your progress' },
+            ].map(({ icon, text }) => (
+              <div key={text} style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                <span style={{ fontSize: '1.1rem', width: '28px', textAlign: 'center', flexShrink: 0 }}>{icon}</span>
+                <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.9rem', fontWeight: '500' }}>{text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Right panel */}
+      <div style={s.right}>
+        <div style={s.card}>
+          {view === 'login' && <LoginView onSwitch={() => setView('signup')} onForgot={() => setView('forgot')} />}
+          {view === 'signup' && <SignupView onSwitch={() => setView('login')} />}
+          {view === 'forgot' && <ForgotView onBack={() => setView('login')} />}
+        </div>
       </div>
     </div>
   );
