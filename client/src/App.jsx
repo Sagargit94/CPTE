@@ -57,7 +57,7 @@ export default function App() {
   }
 
   if (currentScreen === 'exam' && currentAttempt) {
-    return <ExamScreen attempt={currentAttempt} onFinish={handleExamFinish} />;
+    return <ExamScreen attempt={currentAttempt} onFinish={handleExamFinish} onCancel={() => { setCurrentAttempt(null); setCurrentScreen('home'); }} />;
   }
 
   if (currentScreen === 'results' && currentAttempt) {
