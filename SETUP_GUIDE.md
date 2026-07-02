@@ -1,193 +1,214 @@
 # CPTE Exam Prep — Setup Guide
 
-Follow these steps **in order**. Each step tells you what success looks like before moving on.
+This guide walks you through setting up the CPTE PT Exam LMS app from scratch, even if you're new to web development.
 
 ---
 
-## Step 0 — Install required tools
+## Step 1: Install Required Software
 
-1. **Node.js** — Download from https://nodejs.org (choose the "LTS" version)
-   - After installing, open your terminal and type: `node --version`
-   - You should see something like `v20.x.x`
+### Node.js (v18 or later)
+1. Go to https://nodejs.org
+2. Download the **LTS** version (recommended)
+3. Run the installer (accept all defaults)
+4. Verify: open a terminal and run `node --version` — you should see v18.x or higher
 
-2. **VS Code** — Download from https://code.visualstudio.com
-   - This is your code editor. Open the `pt-exam-app` folder in VS Code.
+### VS Code (recommended editor)
+1. Go to https://code.visualstudio.com
+2. Download and install for your operating system
 
 ---
 
-## Step 1 — Set up your project folder
+## Step 2: Open the Project
 
+1. Open VS Code
+2. Go to **File → Open Folder**
+3. Select the `/home/user/CPTE` folder (or wherever you placed the project)
+4. Open the integrated terminal: **View → Terminal** (or Ctrl+`)
+
+---
+
+## Step 3: Create a Supabase Project
+
+1. Go to https://supabase.com and sign up for a free account
+2. Click **New Project**
+3. Choose a name (e.g., "cpte-lms"), set a strong database password, and select a region
+4. Wait 1-2 minutes for the project to provision
+
+### Find Your Keys
+1. In the Supabase dashboard, go to **Settings → API**
+2. Copy the following values:
+   - **Project URL** — looks like `https://abcdefgh.supabase.co`
+   - **anon public key** — starts with `eyJ...`
+   - **service_role key** — starts with `eyJ...` (keep this SECRET)
+
+---
+
+## Step 4: Configure Environment Variables
+
+### Backend (.env)
+In the project root (`/home/user/CPTE/`), create a file named `.env`:
 ```
-pt-exam-app/
-├── .env.example         ← copy this to .env
-├── .gitignore
-├── package.json
-├── SETUP_GUIDE.md
-├── db/
-│   ├── 001_init_schema.sql
-│   ├── 002_users_rls.sql
-│   ├── questions.js
-│   └── seed.js
-├── server/
-│   ├── index.js
-│   ├── lib/supabase.js
-│   └── routes/
-│       ├── attempts.js
-│       └── templates.js
-└── client/
-    ├── .env.example     ← copy this to client/.env
-    ├── package.json
-    ├── index.html
-    ├── vite.config.js
-    └── src/
-        ├── main.jsx
-        ├── App.jsx
-        ├── lib/
-        │   ├── supabaseClient.js
-        │   └── api.js
-        └── components/
-            ├── AuthScreen.jsx
-            ├── HomeScreen.jsx
-            ├── ExamScreen.jsx
-            └── ResultsScreen.jsx
-```
-
----
-
-## Step 2 — Create your Supabase project
-
-1. Go to https://supabase.com and click **Start your project**
-2. Sign in with GitHub (free)
-3. Click **New project**, give it a name (e.g., `cpte-exam`), choose a password, and pick a region close to you
-4. Wait ~2 minutes for it to be ready
-
-Once ready, you need three values from Supabase:
-
-| What | Where to find it |
-|------|-----------------|
-| **Project URL** | Settings → API → Project URL |
-| **Anon key** | Settings → API → Project API keys → anon public |
-| **Service role key** | Settings → API → Project API keys → service_role (click reveal) |
-
----
-
-## Step 3 — Fill in your .env files
-
-**Root .env** (copy `.env.example` to `.env`):
-```
-SUPABASE_URL=https://xxxx.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=eyJh...
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
 PORT=3001
 FRONTEND_URL=http://localhost:5173
 ```
 
-**client/.env** (copy `client/.env.example` to `client/.env`):
+### Frontend (client/.env)
+In the `client/` folder, create a file named `.env`:
 ```
-VITE_SUPABASE_URL=https://xxxx.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJh...
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-public-key-here
 VITE_API_URL=http://localhost:3001
 ```
 
-> **Important**: Never commit `.env` files to GitHub — they contain secret keys.
+> **Security note:** Never commit `.env` files to git. The `.gitignore` already excludes them.
 
 ---
 
-## Step 4 — Install dependencies
+## Step 5: Install Dependencies
 
-Open a terminal in the project root folder:
+Open the terminal in VS Code and run:
 
 ```bash
+# Install backend dependencies
 npm install
-cd client && npm install && cd ..
+
+# Install frontend dependencies
+cd client
+npm install
+cd ..
 ```
 
-**Success**: No red error messages. You'll see packages downloading.
-
 ---
 
-## Step 5 — Run the database schema in Supabase
+## Step 6: Run the SQL Files in Supabase
 
-1. In Supabase, click **SQL Editor** in the left sidebar
+1. In the Supabase dashboard, go to **SQL Editor** (left sidebar)
 2. Click **New query**
-3. Open `db/001_init_schema.sql`, copy all the text, paste it in, and click **Run**
-4. You should see "Success. No rows returned"
-5. Do the same for `db/002_users_rls.sql`
+3. Open `db/001_init_schema.sql` from your project in VS Code
+4. Copy the entire contents and paste into the Supabase SQL editor
+5. Click **Run** (green button)
+6. You should see "Success. No rows returned."
+7. Repeat for `db/002_users_rls.sql` — copy, paste, and run
 
-**Success**: In Table Editor, you should now see tables: `users`, `exam_templates`, `questions`, `exam_attempts`, `attempt_answers`
+> Run 001 FIRST, then 002. The order matters!
 
 ---
 
-## Step 6 — Load the questions into the database
+## Step 7: Seed the Database with Questions
 
-Back in your terminal at the project root:
+In your terminal (from the project root):
 
 ```bash
 npm run seed
 ```
 
-**Success**: You should see:
+You should see output like:
 ```
-Using template ID: 1
-✓ Seeded 100 questions successfully.
+Seeding 100 questions into the database...
+Successfully inserted 100 questions!
+
+Question counts by domain:
+  Musculoskeletal: 30
+  Neuromuscular: 20
+  Cardiopulmonary: 15
+  Integumentary: 10
+  Other Systems: 15
+  Non-Systems: 10
 ```
 
 ---
 
-## Step 7 — Run the app
+## Step 8: Start the Application
 
-Open **two terminal tabs**:
+You need two terminal windows running simultaneously.
 
-**Tab 1 — Backend** (in the project root):
+### Terminal 1 — Backend Server
 ```bash
+# From the project root (/home/user/CPTE)
 npm start
 ```
 You should see: `CPTE API server running on port 3001`
 
-Test it: open your browser and go to `http://localhost:3001/api/health`
-You should see: `{"ok":true,"timestamp":"..."}`
-
-**Tab 2 — Frontend** (in the `client/` folder):
+For development with auto-reload:
 ```bash
+npm run dev
+```
+
+### Terminal 2 — Frontend
+```bash
+# Open a new terminal in VS Code (click the + icon in the terminal panel)
 cd client
 npm run dev
 ```
-You should see: `Local: http://localhost:5173/`
-
-Open `http://localhost:5173` in your browser.
+You should see: `Local: http://localhost:5173`
 
 ---
 
-## Step 8 — Create your first account
+## Step 9: Open the App and Test
 
-1. On the login page, click **Sign Up**
-2. Enter your email and a password (6+ characters)
-3. Check your email for a confirmation link from Supabase and click it
-4. Return to the app and sign in
+1. Open your browser and go to **http://localhost:5173**
+2. You should see the CPTE Exam Prep login screen
+
+### Test Sign-Up
+1. Click "Sign Up" (or toggle to sign-up mode)
+2. Enter an email and password (at least 6 characters)
+3. Click "Create Account"
+4. Check your email for a confirmation link (check spam folder)
+5. Click the confirmation link
+
+### Test Sign-In
+1. Return to http://localhost:5173
+2. Enter your email and password
+3. Click "Sign In"
+4. You should be redirected to the home screen
+
+### Test an Exam
+1. Click "Start Practice" to begin a practice exam
+2. Answer some questions — you'll see immediate feedback
+3. Click "Submit Exam" when done
+4. Review your results on the Results screen
 
 ---
 
 ## Troubleshooting
 
-**"User profile not found" error after login**
-The `002_users_rls.sql` trigger auto-creates a profile row on signup. If it fails:
-- In Supabase SQL Editor, run `002_users_rls.sql` again
-- Sign up with a new email
+### "Cannot connect to Supabase"
+- Double-check your `.env` files for typos in the URL or keys
+- Make sure you used the correct keys (anon key for frontend, service_role key for backend)
 
-**"Template not found" or no exam appears**
-- Make sure you ran Step 5 (001_init_schema.sql inserts the default template)
-- Re-run `npm run seed`
+### "User profile not found" error
+- This means the database trigger (from 002_users_rls.sql) didn't create your user profile
+- In Supabase SQL Editor, run: `SELECT * FROM public.users;`
+- If empty, manually insert: `INSERT INTO public.users (id, email) SELECT id, email FROM auth.users;`
 
-**CORS error in browser**
-- Make sure `FRONTEND_URL=http://localhost:5173` is set in your root `.env`
-- Restart the backend (`npm start`)
+### "No templates found" when starting exam
+- The template is inserted by 001_init_schema.sql — run it again if you reset the database
+- Check: `SELECT * FROM public.exam_templates;` should return 1 row
 
-**"Cannot find module" errors**
-- Run `npm install` in the root folder AND in the `client/` folder
+### "Seed failed: duplicate key"
+- The questions already exist. Run `DELETE FROM public.questions;` in SQL Editor, then `npm run seed` again
+
+### Backend not starting
+- Make sure your `.env` file exists in the project root (not inside `/server`)
+- Run `npm install` if you see "Cannot find module" errors
+
+### CORS error in browser
+- Make sure the backend is running on port 3001
+- Make sure `FRONTEND_URL=http://localhost:5173` is in your backend `.env`
+
+### Email confirmation not arriving
+- Check your spam folder
+- In Supabase: **Authentication → Settings → Email** — you can disable email confirmation for development
 
 ---
 
-## Next: Make it live on the internet
+## Production Deployment Notes
 
-Once everything works locally, see **DEPLOYMENT_GUIDE.md** to put it online for free using:
-- **Render** — for the backend API
-- **Vercel** — for the frontend website
+For production, consider:
+1. Using **Vercel** or **Netlify** for the frontend (`cd client && npm run build`)
+2. Using **Railway**, **Render**, or **Fly.io** for the backend
+3. Setting `FRONTEND_URL` to your production domain in backend environment variables
+4. Enabling Supabase Row Level Security (already configured in the SQL files)
+5. Using proper secret management (not `.env` files) for production credentials
