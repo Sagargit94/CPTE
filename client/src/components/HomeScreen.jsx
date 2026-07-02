@@ -144,7 +144,7 @@ export default function HomeScreen({ user, onStartExam, onDashboard }) {
             marginBottom: '1.5rem',
             letterSpacing: '0.05em'
           }}>
-            NPTE PREPARATION PLATFORM
+            CPTE BY CAPR PREPARATION PLATFORM
           </div>
           <h1 style={{
             margin: '0 0 1rem',
@@ -157,17 +157,17 @@ export default function HomeScreen({ user, onStartExam, onDashboard }) {
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text'
           }}>
-            Master the NPTE.<br />Pass with Confidence.
+            Master the CPTE.<br />Pass with Confidence.
           </h1>
           <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '1rem', margin: '0 0 2.5rem', lineHeight: 1.6 }}>
-            Comprehensive practice questions aligned with the National Physical Therapy Examination blueprint.
+            Comprehensive practice questions aligned with the Canadian Physiotherapy Competency Examination blueprint.
           </p>
           {/* Stats Row */}
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
             <StatPill value="101" label="Questions" />
             <StatPill value="6" label="Domains" />
             <StatPill value="2" label="Modes" />
-            <StatPill value="NPTE" label="Aligned" />
+            <StatPill value="CPTE" label="Aligned" />
           </div>
         </div>
       </section>
@@ -247,7 +247,7 @@ export default function HomeScreen({ user, onStartExam, onDashboard }) {
               }}>⏱️</div>
               <div>
                 <div style={{ fontWeight: '800', color: C.warning, fontSize: '1.05rem' }}>Mock Exam Mode</div>
-                <div style={{ fontSize: '0.8rem', color: C.muted, fontWeight: '500' }}>Simulate the real NPTE</div>
+                <div style={{ fontSize: '0.8rem', color: C.muted, fontWeight: '500' }}>Simulate the real CPTE</div>
               </div>
             </div>
             <ul style={{ margin: '0 0 1.25rem', padding: '0 0 0 0', listStyle: 'none' }}>

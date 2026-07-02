@@ -58,5 +58,5 @@ CREATE TABLE IF NOT EXISTS public.attempt_answers (
 
 -- Insert default exam template
 INSERT INTO public.exam_templates (name, description, question_count, time_limit_seconds)
-VALUES ('NPTE-Style Full Exam', 'A 100-question exam covering all PT domains, modeled after the NPTE format.', 100, 6000)
+VALUES ('CPTE Full Exam', 'A 100-question exam covering all PT domains, aligned with the CAPR CPTE blueprint.', 100, 6000)
 ON CONFLICT DO NOTHING;

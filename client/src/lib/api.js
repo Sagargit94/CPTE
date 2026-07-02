@@ -1,6 +1,6 @@
 import { supabase } from './supabaseClient.js';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://cpte-api.onrender.com';
 
 export async function apiFetch(path, options = {}) {
   const { data: { session } } = await supabase.auth.getSession();

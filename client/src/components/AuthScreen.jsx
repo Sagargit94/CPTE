@@ -292,7 +292,7 @@ export default function AuthScreen() {
         <div style={s.logoArea}>
           <div style={s.logoIcon}>🩺</div>
           <div style={s.appName}>CPTE Exam Prep</div>
-          <div style={s.subtitle}>NPTE Physical Therapy Licensing Exam Practice</div>
+          <div style={s.subtitle}>CPTE by CAPR — Physical Therapy Licensing Exam Practice</div>
         </div>
 
         {showForgot ? (
