@@ -10,17 +10,21 @@ const app = express();
 
 const allowedOrigins = [
   process.env.FRONTEND_URL,
+  'https://cpte-mcq.netlify.app',
+  'https://cpte-rho.vercel.app',
   'http://localhost:5173',
   'http://localhost:3000'
 ].filter(Boolean);
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+    // Allow requests with no origin (mobile apps, curl, Render health checks)
+    if (!origin) return callback(null, true);
+    // Allow any netlify.app or vercel.app subdomain for this project
+    if (origin.endsWith('.netlify.app') || origin.endsWith('.vercel.app') || allowedOrigins.includes(origin)) {
+      return callback(null, true);
     }
+    callback(new Error('Not allowed by CORS'));
   },
   credentials: true
 }));
