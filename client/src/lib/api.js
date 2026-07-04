@@ -50,3 +50,5 @@ export const submitAttempt = (id) =>
 
 export const getHistory = () => apiFetch('/api/attempts/history');
 export const getDashboard = () => apiFetch('/api/attempts/dashboard');
+export const getLimits = () => apiFetch('/api/attempts/limits');
+export const resumeAttempt = (id) => apiFetch(`/api/attempts/${id}`);

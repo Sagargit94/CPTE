@@ -47,9 +47,17 @@ export default function ExamScreen({ attempt, onFinish, onCancel }) {
   const isMock = att.mode === 'mock';
   const isPractice = att.mode === 'practice';
 
+  // Pre-populate saved answers when resuming an in-progress attempt
+  const initialAnswers = {};
+  const initialFlags = new Set();
+  (attempt.answers || []).forEach(a => {
+    if (a.selected_option_index != null) initialAnswers[a.question_id] = a.selected_option_index;
+    if (a.is_flagged) initialFlags.add(a.question_id);
+  });
+
   const [currentIdx, setCurrentIdx] = useState(0);
-  const [answers, setAnswers] = useState({});
-  const [flags, setFlags] = useState(new Set());
+  const [answers, setAnswers] = useState(initialAnswers);
+  const [flags, setFlags] = useState(initialFlags);
   const [feedback, setFeedback] = useState({});
   const [timeLeft, setTimeLeft] = useState(null);
   const [submitting, setSubmitting] = useState(false);

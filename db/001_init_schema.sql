@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS public.users (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'student',
+  is_activated BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -15,7 +16,7 @@ CREATE TABLE IF NOT EXISTS public.exam_templates (
   name TEXT NOT NULL,
   description TEXT,
   question_count INTEGER NOT NULL DEFAULT 100,
-  time_limit_seconds INTEGER NOT NULL DEFAULT 6000
+  time_limit_seconds INTEGER NOT NULL DEFAULT 9000
 );
 
 -- Questions table
@@ -58,5 +59,5 @@ CREATE TABLE IF NOT EXISTS public.attempt_answers (
 
 -- Insert default exam template
 INSERT INTO public.exam_templates (name, description, question_count, time_limit_seconds)
-VALUES ('CPTE Full Exam', 'A 100-question exam covering all PT domains, aligned with the CAPR CPTE blueprint.', 100, 6000)
+VALUES ('CPTE Full Exam', 'A 100-question exam covering all PT domains, aligned with the CAPR CPTE blueprint.', 100, 9000)
 ON CONFLICT DO NOTHING;

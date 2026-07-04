@@ -11,12 +11,37 @@ function shuffle(array) {
   return arr;
 }
 
+const LIMITS = {
+  activated:     { practice: 20, mock: 10 },
+  free:          { practice: 2,  mock: 1  },
+};
+
 // POST / — create new attempt
 router.post('/', async (req, res) => {
   try {
     const { template_id, mode } = req.body;
     if (!['practice', 'mock'].includes(mode)) {
       return res.status(400).json({ error: 'mode must be practice or mock' });
+    }
+
+    // Enforce subscription limits
+    const limits = req.user.is_activated ? LIMITS.activated : LIMITS.free;
+    const { count, error: cntErr } = await supabaseAdmin
+      .from('exam_attempts')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', req.user.id)
+      .eq('mode', mode)
+      .neq('status', 'in_progress'); // in-progress doesn't count against limit
+    if (cntErr) return res.status(500).json({ error: cntErr.message });
+    if (count >= limits[mode]) {
+      return res.status(403).json({
+        error: `Attempt limit reached`,
+        code: 'LIMIT_REACHED',
+        limit: limits[mode],
+        used: count,
+        mode,
+        is_activated: req.user.is_activated,
+      });
     }
 
     // Fetch template
@@ -101,6 +126,31 @@ async function autoSubmitExpired(attemptId) {
 
   return score;
 }
+
+// GET /limits — subscription limits and usage for current user
+router.get('/limits', async (req, res) => {
+  const limits = req.user.is_activated ? LIMITS.activated : LIMITS.free;
+  const modes = ['practice', 'mock'];
+  const usage = {};
+  for (const mode of modes) {
+    const { count } = await supabaseAdmin
+      .from('exam_attempts')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', req.user.id)
+      .eq('mode', mode)
+      .neq('status', 'in_progress');
+    usage[mode] = count || 0;
+  }
+  res.json({
+    is_activated: req.user.is_activated,
+    limits,
+    used: usage,
+    remaining: {
+      practice: Math.max(0, limits.practice - usage.practice),
+      mock:     Math.max(0, limits.mock     - usage.mock),
+    },
+  });
+});
 
 // GET /history — last 10 attempts for the user
 router.get('/history', async (req, res) => {

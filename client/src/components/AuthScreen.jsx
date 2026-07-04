@@ -209,7 +209,7 @@ function ForgotView({ onBack }) {
 const FEATURES = [
   { icon: '📚', text: '100 CPTE-aligned questions across 6 domains' },
   { icon: '⚡', text: 'Instant feedback with full rationale in Practice Mode' },
-  { icon: '⏱️', text: '100-minute timed Mock Exam simulation' },
+  { icon: '⏱️', text: '150-minute timed Mock Exam simulation' },
   { icon: '📊', text: 'Analytics dashboard tracking your progress over time' },
 ];
 

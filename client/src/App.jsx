@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { supabase } from './lib/supabaseClient.js';
-import { startAttempt } from './lib/api.js';
+import { startAttempt, resumeAttempt } from './lib/api.js';
 import { ThemeProvider } from './lib/theme.jsx';
 import AuthScreen from './components/AuthScreen.jsx';
 import HomeScreen from './components/HomeScreen.jsx';
@@ -51,6 +51,12 @@ export default function App() {
     setCurrentScreen('results');
   }
 
+  async function handleResumeExam(attemptId) {
+    const result = await resumeAttempt(attemptId);
+    setCurrentAttempt(result);
+    setCurrentScreen('exam');
+  }
+
   function handleCancel() {
     setCurrentAttempt(null);
     setCurrentScreen('home');
@@ -91,7 +97,7 @@ export default function App() {
         )}
         {user && currentScreen === 'home' && (
           <Page key="home">
-            <HomeScreen user={user} onStartExam={handleStartExam} onDashboard={() => setCurrentScreen('dashboard')} />
+            <HomeScreen user={user} onStartExam={handleStartExam} onResumeExam={handleResumeExam} onDashboard={() => setCurrentScreen('dashboard')} />
           </Page>
         )}
       </AnimatePresence>
