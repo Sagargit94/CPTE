@@ -5,3 +5,11 @@ dist/
 client/dist/
 .DS_Store
 *.log
+
+# Generated question JSON source files
+cpte_msk_450.json
+other_systems_225.json
+neuro_300.json
+cardio_225.json
+integument_150.json
+non_systems_150.json
