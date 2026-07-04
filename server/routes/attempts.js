@@ -230,22 +230,18 @@ router.get('/:id', async (req, res) => {
 
     const { data: answers, error: ansErr } = await supabaseAdmin
       .from('attempt_answers')
-      .select('*')
+      .select('*, questions(*)')
       .eq('attempt_id', id);
     if (ansErr) return res.status(500).json({ error: ansErr.message });
 
-    const { data: questions, error: qErr } = await supabaseAdmin
-      .from('questions')
-      .select('*')
-      .eq('template_id', attempt.template_id)
-      .order('id');
-    if (qErr) return res.status(500).json({ error: qErr.message });
-
+    // Return only the questions assigned to this attempt (not the full bank)
+    const questions = (answers || []).map(a => a.questions).filter(Boolean);
     const safeQuestions = attempt.status === 'in_progress'
       ? questions.map(({ correct_option_index, rationale, ...q }) => q)
       : questions;
+    const safeAnswers = answers.map(({ questions: _q, ...a }) => a);
 
-    res.json({ attempt, questions: safeQuestions, answers });
+    res.json({ attempt, questions: safeQuestions, answers: safeAnswers });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
@@ -347,11 +343,8 @@ router.post('/:id/submit', async (req, res) => {
       .single();
     if (updErr) return res.status(500).json({ error: updErr.message });
 
-    const { data: questions } = await supabaseAdmin
-      .from('questions')
-      .select('*')
-      .eq('template_id', attempt.template_id)
-      .order('id');
+    // Return only questions used in this attempt
+    const questions = answers.map(a => a.questions).filter(Boolean);
 
     res.json({ attempt: updatedAttempt, questions, answers });
   } catch (err) {
