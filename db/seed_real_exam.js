@@ -25,8 +25,14 @@ async function seed() {
     allQuestions = allQuestions.concat(batch);
   }
 
-  // Ensure all have template_id 2
-  allQuestions = allQuestions.map(q => ({ ...q, template_id: 2 }));
+  // Ensure all have template_id 2 and required fields are non-null
+  const required = ['question_text', 'option_a', 'option_b', 'option_c', 'option_d', 'rationale', 'domain'];
+  const before = allQuestions.length;
+  allQuestions = allQuestions
+    .map(q => ({ ...q, template_id: 2 }))
+    .filter(q => required.every(f => q[f] != null && q[f] !== ''));
+  const dropped = before - allQuestions.length;
+  if (dropped > 0) console.log(`Dropped ${dropped} questions with missing required fields.`);
 
   console.log(`Seeding ${allQuestions.length} real exam questions...`);
 
