@@ -12,16 +12,16 @@ function shuffle(array) {
 }
 
 const LIMITS = {
-  activated:     { practice: 20, mock: 10 },
-  free:          { practice: 2,  mock: 1  },
+  activated:     { practice: 20, mock: 10, real: 20 },
+  free:          { practice: 2,  mock: 1,  real: 3  },
 };
 
 // POST / — create new attempt
 router.post('/', async (req, res) => {
   try {
     const { template_id, mode } = req.body;
-    if (!['practice', 'mock'].includes(mode)) {
-      return res.status(400).json({ error: 'mode must be practice or mock' });
+    if (!['practice', 'mock', 'real'].includes(mode)) {
+      return res.status(400).json({ error: 'mode must be practice, mock, or real' });
     }
 
     // Enforce subscription limits
@@ -62,7 +62,35 @@ router.post('/', async (req, res) => {
       .order('id');
     if (qErr) return res.status(500).json({ error: qErr.message });
 
-    const shuffled = shuffle(questions).slice(0, 100);
+    let shuffled;
+    if (mode === 'real') {
+      // Keep vignette clusters together: shuffle clusters, then expand
+      const clusters = {};
+      const standalone = [];
+      questions.forEach(q => {
+        if (q.vignette_id) {
+          if (!clusters[q.vignette_id]) clusters[q.vignette_id] = [];
+          clusters[q.vignette_id].push(q);
+        } else {
+          standalone.push(q);
+        }
+      });
+      const clusterList = shuffle(Object.values(clusters));
+      const standaloneShuffled = shuffle(standalone);
+      // Interleave clusters and standalone, pick up to 100
+      const combined = [];
+      let ci = 0, si = 0;
+      while (combined.length < 100 && (ci < clusterList.length || si < standaloneShuffled.length)) {
+        if (ci < clusterList.length && (si >= standaloneShuffled.length || combined.length % 5 !== 4)) {
+          combined.push(...clusterList[ci++]);
+        } else if (si < standaloneShuffled.length) {
+          combined.push(standaloneShuffled[si++]);
+        }
+      }
+      shuffled = combined.slice(0, 100);
+    } else {
+      shuffled = shuffle(questions).slice(0, 100);
+    }
 
     // Compute expiry for mock mode
     const server_expires_at = mode === 'mock'
@@ -130,7 +158,7 @@ async function autoSubmitExpired(attemptId) {
 // GET /limits — subscription limits and usage for current user
 router.get('/limits', async (req, res) => {
   const limits = req.user.is_activated ? LIMITS.activated : LIMITS.free;
-  const modes = ['practice', 'mock'];
+  const modes = ['practice', 'mock', 'real'];
   const usage = {};
   for (const mode of modes) {
     const { count } = await supabaseAdmin

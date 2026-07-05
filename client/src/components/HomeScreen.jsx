@@ -76,7 +76,11 @@ export default function HomeScreen({ user, onStartExam, onResumeExam, onDashboar
     try {
       const templates = await getTemplates();
       if (!templates.length) throw new Error('No exam templates found');
-      await onStartExam(templates[0].id, mode);
+      // Real exam uses template 2; practice/mock use template 1
+      const template = mode === 'real'
+        ? (templates.find(t => t.name.includes('Real')) || templates[1] || templates[0])
+        : templates[0];
+      await onStartExam(template.id, mode);
     } catch (err) {
       if (err.message === 'Attempt limit reached') {
         // limits state will already reflect this — nothing extra needed
@@ -285,6 +289,33 @@ export default function HomeScreen({ user, onStartExam, onResumeExam, onDashboar
               </motion.div>
             );
           })()}
+          {/* Real Exam Walkthrough */}
+          <motion.div variants={cardVariants} className="card"
+            style={{ borderColor: '#1d6b5e', borderWidth: '1.5px', padding: '1.6rem', position: 'relative', overflow: 'hidden', boxShadow: '0 4px 24px rgba(29,107,94,0.13)', gridColumn: 'span 2' }}>
+            <div style={{ position: 'absolute', top: 0, right: 0, background: '#1d6b5e', color: '#fff', fontSize: '0.6rem', fontWeight: '800', padding: '3px 10px', letterSpacing: '0.08em', borderBottomLeftRadius: '6px' }}>NEW</div>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1.2rem', flexWrap: 'wrap' }}>
+              <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: 'rgba(29,107,94,0.12)', border: '1px solid rgba(29,107,94,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Target size={20} color="#1d6b5e" strokeWidth={2} />
+              </div>
+              <div style={{ flex: 1, minWidth: '220px' }}>
+                <div style={{ fontWeight: '800', color: '#1d6b5e', fontSize: '1.05rem', letterSpacing: '-0.02em', fontFamily: 'var(--font-head)' }}>Real Exam Walkthrough</div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.1rem', fontWeight: '500' }}>Authentic CAPR portal experience · Vignette-based cases</div>
+                <ul style={{ listStyle: 'none', marginTop: '0.9rem', marginBottom: 0, display: 'flex', flexWrap: 'wrap', gap: '0.4rem 1.5rem' }}>
+                  {['Exact replica of real CPTE interface', 'Shared patient vignettes (3-4 Qs per case)', 'Option elimination (cross out wrong answers)', 'Question navigator sidebar', 'Flag questions for review', '150 min timed exam'].map(t => (
+                    <li key={t} style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.82rem', color: 'var(--text-mid)' }}>
+                      <CheckCircle size={13} color="#1d6b5e" strokeWidth={2.5} /> {t}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <motion.button whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.97 }}
+                onClick={() => handleMode('real')} disabled={!!starting}
+                style={{ alignSelf: 'center', padding: '0.8rem 1.6rem', background: '#1d6b5e', color: '#fff', border: 'none', borderRadius: 'var(--radius)', fontWeight: '700', fontSize: '0.9rem', cursor: starting ? 'not-allowed' : 'pointer', boxShadow: '0 4px 12px rgba(29,107,94,0.35)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontFamily: 'var(--font-body)', opacity: starting ? 0.7 : 1, whiteSpace: 'nowrap' }}>
+                <Target size={15} /> {starting === 'real' ? 'Launching…' : 'Enter Real Exam'}
+              </motion.button>
+            </div>
+          </motion.div>
+
         </motion.div>
 
         {/* ── Recent Attempts ── */}
@@ -317,11 +348,11 @@ export default function HomeScreen({ user, onStartExam, onResumeExam, onDashboar
           ) : recentAttempts.map((a, i) => (
             <div key={a.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.4rem', borderBottom: i < recentAttempts.length - 1 ? '1px solid var(--border)' : 'none', gap: '0.75rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.9rem', flex: 1, minWidth: 0 }}>
-                <div style={{ width: '38px', height: '38px', borderRadius: '9px', background: a.mode === 'mock' ? 'var(--accent-light)' : 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  {a.mode === 'mock' ? <Clock size={16} color="var(--accent)" /> : <BookOpen size={16} color="var(--primary)" />}
+                <div style={{ width: '38px', height: '38px', borderRadius: '9px', background: a.mode === 'mock' ? 'var(--accent-light)' : a.mode === 'real' ? 'rgba(29,107,94,0.1)' : 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  {a.mode === 'mock' ? <Clock size={16} color="var(--accent)" /> : a.mode === 'real' ? <Target size={16} color="#1d6b5e" /> : <BookOpen size={16} color="var(--primary)" />}
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: '700', fontSize: '0.875rem', color: 'var(--text)' }}>{a.mode === 'mock' ? 'Mock Exam' : 'Practice Session'}</div>
+                  <div style={{ fontWeight: '700', fontSize: '0.875rem', color: 'var(--text)' }}>{a.mode === 'mock' ? 'Mock Exam' : a.mode === 'real' ? 'Real Exam Walkthrough' : 'Practice Session'}</div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>{fmt(a.started_at)}</div>
                 </div>
               </div>

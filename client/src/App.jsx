@@ -8,6 +8,7 @@ import HomeScreen from './components/HomeScreen.jsx';
 import ExamScreen from './components/ExamScreen.jsx';
 import ResultsScreen from './components/ResultsScreen.jsx';
 import DashboardScreen from './components/DashboardScreen.jsx';
+import RealExamScreen from './components/RealExamScreen.jsx';
 
 const pageVariants = {
   initial: { opacity: 0, y: 10 },
@@ -43,7 +44,7 @@ export default function App() {
   async function handleStartExam(templateId, mode) {
     const result = await startAttempt(templateId, mode);
     setCurrentAttempt(result);
-    setCurrentScreen('exam');
+    setCurrentScreen(mode === 'real' ? 'realexam' : 'exam');
   }
 
   function handleExamFinish(attempt) {
@@ -80,6 +81,16 @@ export default function App() {
     <ThemeProvider>
       <AnimatePresence mode="wait">
         {!user && <Page key="auth"><AuthScreen /></Page>}
+        {user && currentScreen === 'realexam' && currentAttempt && (
+          <Page key="realexam">
+            <RealExamScreen
+              attempt={currentAttempt.attempt}
+              questions={currentAttempt.questions}
+              answers={currentAttempt.answers}
+              onFinish={handleExamFinish}
+            />
+          </Page>
+        )}
         {user && currentScreen === 'exam' && currentAttempt && (
           <Page key="exam">
             <ExamScreen attempt={currentAttempt} onFinish={handleExamFinish} onCancel={handleCancel} />
