@@ -41,14 +41,29 @@ async function requireAuth(req, res, next) {
   if (error || !user) {
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
-  const { data: userRow, error: userErr } = await supabaseAdmin
+  let { data: userRow, error: userErr } = await supabaseAdmin
     .from('users')
     .select('*')
     .eq('id', user.id)
     .single();
+
+  // Auto-create profile for OAuth users (e.g. Google) who have no row yet
   if (userErr || !userRow) {
-    return res.status(401).json({ error: 'User profile not found' });
+    const { data: newRow, error: insertErr } = await supabaseAdmin
+      .from('users')
+      .insert({
+        id: user.id,
+        email: user.email,
+        is_activated: false,
+      })
+      .select()
+      .single();
+    if (insertErr || !newRow) {
+      return res.status(401).json({ error: 'User profile not found and could not be created' });
+    }
+    userRow = newRow;
   }
+
   req.user = userRow;
   next();
 }

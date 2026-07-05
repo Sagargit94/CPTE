@@ -17,7 +17,7 @@ function formatTime(sec) {
   return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
 
-export default function RealExamScreen({ attempt, questions, answers: initialAnswers, onFinish }) {
+export default function RealExamScreen({ attempt, questions, answers: initialAnswers, onFinish, onCancel }) {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [answers, setAnswers] = useState(() => {
     const map = {};
@@ -41,6 +41,7 @@ export default function RealExamScreen({ attempt, questions, answers: initialAns
   const [showFinishModal, setShowFinishModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [highlightMode, setHighlightMode] = useState(false);
+  const [showExitModal, setShowExitModal] = useState(false);
   const navRef = useRef(null);
 
   const q = questions[currentIdx];
@@ -147,6 +148,7 @@ export default function RealExamScreen({ attempt, questions, answers: initialAns
         <ToolbarBtn icon="≡" label="OVERVIEW" onClick={() => {}} />
         <ToolbarBtn icon="EN" label="English" onClick={() => {}} text />
         <ToolbarBtn icon="⏎" label="FINISH" onClick={() => setShowFinishModal(true)} accent />
+        <ToolbarBtn icon="✕" label="EXIT" onClick={() => setShowExitModal(true)} />
         <ToolbarBtn icon="◉" label="COLOUR" onClick={() => {}} />
 
         {/* Timer */}
@@ -339,6 +341,28 @@ export default function RealExamScreen({ attempt, questions, answers: initialAns
           </div>
         </div>
       </div>
+
+      {/* EXIT CONFIRMATION MODAL */}
+      {showExitModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }}>
+          <div style={{ background: WHITE, borderRadius: '8px', padding: '32px', maxWidth: '400px', width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}>
+            <h2 style={{ margin: '0 0 12px', color: DARK, fontSize: '1.1rem' }}>Exit Exam?</h2>
+            <p style={{ fontSize: '0.85rem', color: '#4a6060', marginBottom: '20px', lineHeight: '1.6' }}>
+              Your progress is saved. You can resume this exam from the home screen.
+            </p>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowExitModal(false)}
+                style={{ padding: '8px 18px', background: '#eee', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.83rem', fontWeight: '600' }}>
+                Stay in Exam
+              </button>
+              <button onClick={onCancel}
+                style={{ padding: '8px 18px', background: DARK, color: WHITE, border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.83rem', fontWeight: '600' }}>
+                Exit to Home
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* FINISH CONFIRMATION MODAL */}
       {showFinishModal && (

@@ -55,7 +55,7 @@ export default function App() {
   async function handleResumeExam(attemptId) {
     const result = await resumeAttempt(attemptId);
     setCurrentAttempt(result);
-    setCurrentScreen('exam');
+    setCurrentScreen(result.attempt?.mode === 'real' ? 'realexam' : 'exam');
   }
 
   function handleCancel() {
@@ -88,6 +88,7 @@ export default function App() {
               questions={currentAttempt.questions}
               answers={currentAttempt.answers}
               onFinish={handleExamFinish}
+              onCancel={handleCancel}
             />
           </Page>
         )}
