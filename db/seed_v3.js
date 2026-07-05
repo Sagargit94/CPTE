@@ -20,7 +20,23 @@ const allQuestions = [...msk, ...neuro, ...cardio, ...integument, ...other, ...n
 async function seed() {
   console.log(`Seeding ${allQuestions.length} questions...`);
 
-  // Delete existing questions for template 1
+  // Delete in correct order to avoid FK violations:
+  // 1. attempt_answers → 2. exam_attempts → 3. questions
+
+  const { error: aaErr } = await supabase
+    .from('attempt_answers')
+    .delete()
+    .neq('id', '00000000-0000-0000-0000-000000000000'); // delete all rows
+  if (aaErr) { console.error('Failed to delete attempt_answers:', aaErr); process.exit(1); }
+  console.log('attempt_answers cleared.');
+
+  const { error: attErr } = await supabase
+    .from('exam_attempts')
+    .delete()
+    .neq('id', '00000000-0000-0000-0000-000000000000');
+  if (attErr) { console.error('Failed to delete exam_attempts:', attErr); process.exit(1); }
+  console.log('exam_attempts cleared.');
+
   const { error: delErr } = await supabase
     .from('questions')
     .delete()
