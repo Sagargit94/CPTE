@@ -10,11 +10,71 @@ const BORDER = '#d0d7d5';
 const BG_PANEL = '#f5f7f6';
 const WHITE = '#ffffff';
 
+const HIGHLIGHT_COLORS = [
+  { label: 'Yellow',  bg: '#fff176', text: '#333' },
+  { label: 'Green',   bg: '#b9f6ca', text: '#1a3a1a' },
+  { label: 'Cyan',    bg: '#b3e5fc', text: '#0d2a3a' },
+  { label: 'Pink',    bg: '#f8bbd0', text: '#3a0d1a' },
+  { label: 'Orange',  bg: '#ffe0b2', text: '#3a1a00' },
+];
+
+const PEN_COLORS = [
+  '#1a2e2e', '#c0392b', '#1d6b5e', '#1565c0', '#6a1b9a', '#e65100',
+];
+
 function formatTime(sec) {
   const h = Math.floor(sec / 3600);
   const m = Math.floor((sec % 3600) / 60);
   const s = sec % 60;
   return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+// Apply highlight marks to plain text, returns array of {text, highlight} segments
+function applyHighlights(text, highlights) {
+  if (!highlights || highlights.length === 0) return [{ text, highlight: null }];
+  // Sort by start position
+  const sorted = [...highlights].sort((a, b) => a.start - b.start);
+  const segments = [];
+  let pos = 0;
+  for (const h of sorted) {
+    if (h.start > pos) segments.push({ text: text.slice(pos, h.start), highlight: null });
+    segments.push({ text: text.slice(h.start, h.end), highlight: h.color });
+    pos = h.end;
+  }
+  if (pos < text.length) segments.push({ text: text.slice(pos), highlight: null });
+  return segments;
+}
+
+function HighlightableText({ text, highlights, onHighlight, highlightColor, highlightMode }) {
+  const ref = useRef(null);
+
+  function handleMouseUp() {
+    if (!highlightMode) return;
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || !ref.current) return;
+    const range = sel.getRangeAt(0);
+    const pre = document.createRange();
+    pre.setStart(ref.current, 0);
+    pre.setEnd(range.startContainer, range.startOffset);
+    const start = pre.toString().length;
+    const selected = sel.toString();
+    if (selected.trim().length === 0) return;
+    onHighlight({ start, end: start + selected.length, color: highlightColor });
+    sel.removeAllRanges();
+  }
+
+  const segments = applyHighlights(text, highlights);
+
+  return (
+    <span ref={ref} onMouseUp={handleMouseUp}
+      style={{ cursor: highlightMode ? 'text' : 'default', userSelect: highlightMode ? 'text' : 'auto' }}>
+      {segments.map((seg, i) =>
+        seg.highlight
+          ? <mark key={i} style={{ background: seg.highlight.bg, color: seg.highlight.text, borderRadius: '2px', padding: '0 1px' }}>{seg.text}</mark>
+          : <span key={i}>{seg.text}</span>
+      )}
+    </span>
+  );
 }
 
 export default function RealExamScreen({ attempt, questions, answers: initialAnswers, onFinish, onCancel }) {
@@ -40,12 +100,31 @@ export default function RealExamScreen({ attempt, questions, answers: initialAns
   const [saving, setSaving] = useState(false);
   const [showFinishModal, setShowFinishModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [highlightMode, setHighlightMode] = useState(false);
   const [showExitModal, setShowExitModal] = useState(false);
+
+  // Notes: { [question_id]: string }
+  const [notes, setNotes] = useState({});
+  const [showNotes, setShowNotes] = useState(false);
+
+  // Highlight state
+  const [highlightMode, setHighlightMode] = useState(false);
+  const [highlightColor, setHighlightColor] = useState(HIGHLIGHT_COLORS[0]);
+  // highlights: { [question_id]: [{start, end, color}] }
+  const [highlights, setHighlights] = useState({});
+
+  // Color picker panel
+  const [showColorPanel, setShowColorPanel] = useState(false);
+  const [penColor, setPenColor] = useState(PEN_COLORS[0]);
+  // activeColorTab: 'highlight' | 'pen'
+  const [activeColorTab, setActiveColorTab] = useState('highlight');
+
   const navRef = useRef(null);
+  const colorPanelRef = useRef(null);
 
   const q = questions[currentIdx];
   const qAnswer = answers[q?.id] || { selected: null, flagged: false, eliminated: [] };
+  const qNote = notes[q?.id] || '';
+  const qHighlights = highlights[q?.id] || [];
 
   // Timer
   useEffect(() => {
@@ -62,6 +141,18 @@ export default function RealExamScreen({ attempt, questions, answers: initialAns
       if (el) el.scrollIntoView({ block: 'nearest' });
     }
   }, [currentIdx]);
+
+  // Close color panel on outside click
+  useEffect(() => {
+    if (!showColorPanel) return;
+    function handle(e) {
+      if (colorPanelRef.current && !colorPanelRef.current.contains(e.target)) {
+        setShowColorPanel(false);
+      }
+    }
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, [showColorPanel]);
 
   const saveToServer = useCallback(async (qid, selected, flagged) => {
     setSaving(true);
@@ -108,6 +199,17 @@ export default function RealExamScreen({ attempt, questions, answers: initialAns
     }
   }
 
+  function addHighlight(range) {
+    setHighlights(h => ({
+      ...h,
+      [q.id]: [...(h[q.id] || []), range],
+    }));
+  }
+
+  function clearHighlights() {
+    setHighlights(h => ({ ...h, [q.id]: [] }));
+  }
+
   function getNavStatus(idx) {
     const q2 = questions[idx];
     const a = answers[q2?.id];
@@ -123,6 +225,7 @@ export default function RealExamScreen({ attempt, questions, answers: initialAns
   }).length;
 
   const flaggedCount = questions.filter(q2 => answers[q2.id]?.flagged).length;
+  const hasNote = !!qNote.trim();
 
   const OPTIONS = [
     { key: 'option_a', label: 'A', idx: 0 },
@@ -131,25 +234,84 @@ export default function RealExamScreen({ attempt, questions, answers: initialAns
     { key: 'option_d', label: 'D', idx: 3 },
   ];
 
-  // Find vignette for current question
   const vignetteText = q?.vignette_text || null;
-  // Find if previous questions shared same vignette
   const sharedVignette = !vignetteText && q?.vignette_id
     ? questions.slice(0, currentIdx).reverse().find(qq => qq.vignette_id === q.vignette_id)?.vignette_text
     : null;
   const displayVignette = vignetteText || sharedVignette;
+
+  const vignetteBody = displayVignette
+    ? (vignetteText
+        ? vignetteText.split('\n\n').slice(1).join('\n\n')
+        : displayVignette.split('\n\n').slice(1).join('\n\n') || displayVignette)
+    : '';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: 'Arial, sans-serif', background: DARK, overflow: 'hidden' }}>
 
       {/* TOP TOOLBAR */}
       <div style={{ display: 'flex', alignItems: 'center', background: DARK, color: WHITE, height: '52px', padding: '0 12px', gap: '4px', borderBottom: '1px solid #2d4a4a', flexShrink: 0 }}>
-        {/* Overview */}
         <ToolbarBtn icon="≡" label="OVERVIEW" onClick={() => {}} />
         <ToolbarBtn icon="EN" label="English" onClick={() => {}} text />
         <ToolbarBtn icon="⏎" label="FINISH" onClick={() => setShowFinishModal(true)} accent />
         <ToolbarBtn icon="✕" label="EXIT" onClick={() => setShowExitModal(true)} />
-        <ToolbarBtn icon="◉" label="COLOUR" onClick={() => {}} />
+
+        {/* COLOUR button with dropdown */}
+        <div style={{ position: 'relative' }} ref={colorPanelRef}>
+          <ToolbarBtn
+            icon={<span style={{ display: 'inline-block', width: '14px', height: '14px', borderRadius: '50%', background: activeColorTab === 'highlight' ? highlightColor.bg : penColor, border: '2px solid rgba(255,255,255,0.4)' }} />}
+            label="COLOUR"
+            onClick={() => setShowColorPanel(p => !p)}
+            active={showColorPanel}
+          />
+          {showColorPanel && (
+            <div style={{ position: 'absolute', top: '54px', left: 0, background: '#1e3a3a', border: '1px solid #3d6060', borderRadius: '6px', padding: '12px', zIndex: 200, minWidth: '220px', boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
+              {/* Tabs */}
+              <div style={{ display: 'flex', marginBottom: '10px', borderBottom: '1px solid #3d6060', paddingBottom: '8px', gap: '4px' }}>
+                {['highlight', 'pen'].map(tab => (
+                  <button key={tab} onClick={() => setActiveColorTab(tab)}
+                    style={{ flex: 1, padding: '4px', background: activeColorTab === tab ? TEAL : 'transparent', color: WHITE, border: 'none', borderRadius: '3px', cursor: 'pointer', fontSize: '0.7rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    {tab === 'highlight' ? '🖍 Highlight' : '✒ Text/Pen'}
+                  </button>
+                ))}
+              </div>
+
+              {activeColorTab === 'highlight' ? (
+                <div>
+                  <div style={{ fontSize: '0.62rem', color: '#7a9a9a', marginBottom: '6px', letterSpacing: '0.5px' }}>HIGHLIGHT COLOR</div>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {HIGHLIGHT_COLORS.map(c => (
+                      <button key={c.label} title={c.label} onClick={() => { setHighlightColor(c); setHighlightMode(true); setShowColorPanel(false); }}
+                        style={{ width: '28px', height: '28px', borderRadius: '4px', background: c.bg, border: highlightColor.label === c.label ? '2px solid #7af0d4' : '2px solid transparent', cursor: 'pointer' }} />
+                    ))}
+                  </div>
+                  <div style={{ marginTop: '10px', fontSize: '0.62rem', color: '#7a9a9a' }}>
+                    Select color then drag over text in the vignette or question to highlight it.
+                  </div>
+                  {qHighlights.length > 0 && (
+                    <button onClick={() => { clearHighlights(); setShowColorPanel(false); }}
+                      style={{ marginTop: '8px', width: '100%', padding: '5px', background: 'transparent', border: '1px solid #c0392b', color: '#ff8a80', borderRadius: '3px', cursor: 'pointer', fontSize: '0.68rem' }}>
+                      Clear highlights on this question
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <div style={{ fontSize: '0.62rem', color: '#7a9a9a', marginBottom: '6px', letterSpacing: '0.5px' }}>PEN / FONT COLOR</div>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {PEN_COLORS.map(c => (
+                      <button key={c} title={c} onClick={() => { setPenColor(c); setShowColorPanel(false); }}
+                        style={{ width: '28px', height: '28px', borderRadius: '4px', background: c, border: penColor === c ? '2px solid #7af0d4' : '2px solid rgba(255,255,255,0.15)', cursor: 'pointer' }} />
+                    ))}
+                  </div>
+                  <div style={{ marginTop: '10px', fontSize: '0.62rem', color: '#7a9a9a' }}>
+                    Selected color applies to notes text. Type in the Notes panel.
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Timer */}
         <div style={{ marginLeft: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '4px 14px', border: '1px solid #3d6060', borderRadius: '4px' }}>
@@ -159,12 +321,24 @@ export default function RealExamScreen({ attempt, questions, answers: initialAns
           <span style={{ fontSize: '0.55rem', color: '#7a9a9a', letterSpacing: '0.5px' }}>TIME REMAINING</span>
         </div>
 
-        <ToolbarBtn icon="📝" label="NOTES" onClick={() => {}} />
-        <ToolbarBtn icon="✏" label={highlightMode ? 'UNHIGHLIGHT' : 'HIGHLIGHT'} onClick={() => setHighlightMode(h => !h)} active={highlightMode} />
+        {/* NOTES button */}
+        <ToolbarBtn
+          icon={<span style={{ position: 'relative', display: 'inline-block' }}>📝{hasNote && <span style={{ position: 'absolute', top: '-3px', right: '-4px', width: '6px', height: '6px', borderRadius: '50%', background: '#f0c06b' }} />}</span>}
+          label="NOTES"
+          onClick={() => setShowNotes(n => !n)}
+          active={showNotes}
+        />
+
+        {/* HIGHLIGHT button */}
+        <ToolbarBtn
+          icon="✏"
+          label={highlightMode ? 'STOP' : 'HIGHLIGHT'}
+          onClick={() => setHighlightMode(h => !h)}
+          active={highlightMode}
+        />
 
         <div style={{ flex: 1 }} />
 
-        {/* Status */}
         <div style={{ fontSize: '0.65rem', color: '#7a9a9a', textAlign: 'center', marginRight: '12px' }}>
           <div style={{ color: '#7af0d4', fontWeight: '700' }}>{answeredCount}/{questions.length} answered</div>
           {flaggedCount > 0 && <div style={{ color: '#f0c06b' }}>{flaggedCount} flagged</div>}
@@ -172,7 +346,6 @@ export default function RealExamScreen({ attempt, questions, answers: initialAns
 
         {saving && <span style={{ fontSize: '0.6rem', color: '#7a9a9a', marginRight: '8px' }}>Saving…</span>}
 
-        {/* Prev / Next */}
         <button onClick={() => setCurrentIdx(i => Math.max(0, i - 1))} disabled={currentIdx === 0}
           style={{ background: 'none', border: 'none', color: currentIdx === 0 ? '#3d5a5a' : WHITE, cursor: currentIdx === 0 ? 'default' : 'pointer', padding: '6px 10px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
           ← PREVIOUS
@@ -183,6 +356,14 @@ export default function RealExamScreen({ attempt, questions, answers: initialAns
         </button>
       </div>
 
+      {/* Highlight mode banner */}
+      {highlightMode && (
+        <div style={{ background: highlightColor.bg, color: highlightColor.text, padding: '5px 16px', fontSize: '0.72rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+          <span>✏ Highlight mode ON — select text in the vignette or question stem to highlight it</span>
+          <span style={{ marginLeft: 'auto', background: 'rgba(0,0,0,0.12)', padding: '2px 10px', borderRadius: '99px', cursor: 'pointer' }} onClick={() => setHighlightMode(false)}>Done</span>
+        </div>
+      )}
+
       {/* MAIN BODY */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
@@ -191,6 +372,7 @@ export default function RealExamScreen({ attempt, questions, answers: initialAns
           {questions.map((_, idx) => {
             const status = getNavStatus(idx);
             const isCurrent = idx === currentIdx;
+            const hasNoteForQ = !!(notes[questions[idx]?.id]?.trim());
             return (
               <div key={idx} data-idx={idx} onClick={() => setCurrentIdx(idx)}
                 style={{
@@ -208,19 +390,17 @@ export default function RealExamScreen({ attempt, questions, answers: initialAns
                 {idx + 1}
                 {status === 'flagged' && <div style={{ fontSize: '0.45rem', color: '#f0c06b' }}>⚑</div>}
                 {status === 'answered' && !isCurrent && <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#7af0d4', margin: '2px auto 0' }} />}
+                {hasNoteForQ && <div style={{ fontSize: '0.45rem', color: '#f0c06b' }}>📝</div>}
               </div>
             );
           })}
         </div>
 
-        {/* CENTER PANEL — Vignette / Question number */}
+        {/* CENTER PANEL — Vignette */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: BG_PANEL, overflow: 'hidden' }}>
-          {/* Question number header */}
           <div style={{ background: DARK, color: WHITE, padding: '10px 20px', fontSize: '0.85rem', fontWeight: '700', borderBottom: '2px solid #2d4a4a', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={{ fontSize: '1.1rem' }}>{currentIdx + 1}</span>
-            <span style={{ color: '#7a9a9a', fontSize: '0.7rem', fontWeight: '400' }}>
-              {q?.domain}
-            </span>
+            <span style={{ color: '#7a9a9a', fontSize: '0.7rem', fontWeight: '400' }}>{q?.domain}</span>
             {q?.vignette_id && (
               <span style={{ background: '#1d5a4e', color: '#7af0d4', fontSize: '0.6rem', padding: '2px 8px', borderRadius: '9999px', fontWeight: '600' }}>
                 CASE {q.vignette_id}
@@ -228,7 +408,6 @@ export default function RealExamScreen({ attempt, questions, answers: initialAns
             )}
           </div>
 
-          {/* Vignette / empty center */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
             {displayVignette ? (
               <div>
@@ -236,8 +415,17 @@ export default function RealExamScreen({ attempt, questions, answers: initialAns
                   {vignetteText ? vignetteText.split('\n\n')[0] : `The following vignette is associated with multiple questions:`}
                 </p>
                 <div style={{ fontSize: '0.88rem', lineHeight: '1.7', color: '#2a3a3a', background: WHITE, border: `1px solid ${BORDER}`, borderRadius: '6px', padding: '20px 24px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-                  {(vignetteText ? vignetteText.split('\n\n').slice(1).join('\n\n') : displayVignette.split('\n\n').slice(1).join('\n\n') || displayVignette)
-                    .split('\n').map((line, i) => <p key={i} style={{ margin: '0 0 10px' }}>{line}</p>)}
+                  {vignetteBody.split('\n').map((line, i) => (
+                    <p key={i} style={{ margin: '0 0 10px' }}>
+                      <HighlightableText
+                        text={line}
+                        highlights={qHighlights.filter(h => h.target === `vignette-${i}`).map(h => ({ ...h }))}
+                        onHighlight={range => addHighlight({ ...range, target: `vignette-${i}` })}
+                        highlightColor={highlightColor}
+                        highlightMode={highlightMode}
+                      />
+                    </p>
+                  ))}
                 </div>
               </div>
             ) : (
@@ -253,7 +441,6 @@ export default function RealExamScreen({ attempt, questions, answers: initialAns
 
         {/* RIGHT PANEL — Answer */}
         <div style={{ width: '440px', flexShrink: 0, display: 'flex', flexDirection: 'column', background: WHITE, borderLeft: `2px solid ${BORDER}`, overflow: 'hidden' }}>
-          {/* Answer header */}
           <div style={{ background: DARK, color: WHITE, padding: '10px 16px', fontSize: '0.8rem', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
             <span>Answer</span>
             <button onClick={toggleFlag}
@@ -263,9 +450,15 @@ export default function RealExamScreen({ attempt, questions, answers: initialAns
           </div>
 
           {/* Question stem */}
-          <div style={{ padding: '16px', borderBottom: `1px solid ${BORDER}`, overflowY: 'auto', maxHeight: '200px', flexShrink: 0 }}>
+          <div style={{ padding: '16px', borderBottom: `1px solid ${BORDER}`, overflowY: 'auto', maxHeight: '220px', flexShrink: 0 }}>
             <p style={{ margin: 0, fontSize: '0.87rem', lineHeight: '1.65', color: '#1a2e2e', fontWeight: '500' }}>
-              {q?.question_text}
+              <HighlightableText
+                text={q?.question_text || ''}
+                highlights={qHighlights.filter(h => h.target === 'stem')}
+                onHighlight={range => addHighlight({ ...range, target: 'stem' })}
+                highlightColor={highlightColor}
+                highlightMode={highlightMode}
+              />
             </p>
           </div>
 
@@ -276,42 +469,13 @@ export default function RealExamScreen({ attempt, questions, answers: initialAns
               const isEliminated = qAnswer.eliminated?.includes(idx);
               return (
                 <div key={idx} style={{ display: 'flex', alignItems: 'stretch', marginBottom: '8px', borderRadius: '4px', overflow: 'hidden', border: isSelected ? `2px solid ${TEAL_SELECTED}` : `1px solid ${BORDER}`, opacity: isEliminated ? 0.45 : 1 }}>
-                  {/* Option text */}
                   <button onClick={() => !isEliminated && selectAnswer(idx)}
-                    style={{
-                      flex: 1,
-                      padding: '12px 14px',
-                      textAlign: 'left',
-                      background: isSelected ? TEAL_SELECTED : WHITE,
-                      color: isSelected ? WHITE : '#1a2e2e',
-                      border: 'none',
-                      cursor: isEliminated ? 'default' : 'pointer',
-                      fontSize: '0.84rem',
-                      lineHeight: '1.5',
-                      textDecoration: isEliminated ? 'line-through' : 'none',
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '8px',
-                    }}>
+                    style={{ flex: 1, padding: '12px 14px', textAlign: 'left', background: isSelected ? TEAL_SELECTED : WHITE, color: isSelected ? WHITE : '#1a2e2e', border: 'none', cursor: isEliminated ? 'default' : 'pointer', fontSize: '0.84rem', lineHeight: '1.5', textDecoration: isEliminated ? 'line-through' : 'none', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
                     <span style={{ fontWeight: '700', flexShrink: 0, opacity: 0.7 }}>{label}.</span>
                     <span>{q?.[key]}</span>
                   </button>
-                  {/* X / Eliminate button */}
                   <button onClick={() => toggleEliminate(idx)}
-                    style={{
-                      width: '36px',
-                      flexShrink: 0,
-                      background: isSelected ? TEAL_HOVER : isEliminated ? '#fee' : '#fff8f8',
-                      border: 'none',
-                      borderLeft: `1px solid ${isSelected ? TEAL_HOVER : BORDER}`,
-                      cursor: 'pointer',
-                      color: isSelected ? 'rgba(255,255,255,0.5)' : isEliminated ? RED_X : '#e0a0a0',
-                      fontSize: '0.85rem',
-                      fontWeight: '700',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
+                    style={{ width: '36px', flexShrink: 0, background: isSelected ? TEAL_HOVER : isEliminated ? '#fee' : '#fff8f8', border: 'none', borderLeft: `1px solid ${isSelected ? TEAL_HOVER : BORDER}`, cursor: 'pointer', color: isSelected ? 'rgba(255,255,255,0.5)' : isEliminated ? RED_X : '#e0a0a0', fontSize: '0.85rem', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                     title={isEliminated ? 'Restore option' : 'Eliminate option'}>
                     ✕
                   </button>
@@ -340,9 +504,50 @@ export default function RealExamScreen({ attempt, questions, answers: initialAns
             )}
           </div>
         </div>
+
+        {/* NOTES PANEL — slides in from right */}
+        {showNotes && (
+          <div style={{ width: '300px', flexShrink: 0, display: 'flex', flexDirection: 'column', background: '#fffde7', borderLeft: '2px solid #f9a825', overflow: 'hidden' }}>
+            <div style={{ background: '#f9a825', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+              <span style={{ fontWeight: '700', fontSize: '0.82rem', color: '#3a2a00' }}>📝 Notes — Q{currentIdx + 1}</span>
+              <button onClick={() => setShowNotes(false)}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1rem', color: '#3a2a00', padding: '0 4px' }}>✕</button>
+            </div>
+            <textarea
+              value={qNote}
+              onChange={e => setNotes(n => ({ ...n, [q.id]: e.target.value }))}
+              placeholder="Type your notes for this question here…"
+              style={{
+                flex: 1,
+                border: 'none',
+                outline: 'none',
+                resize: 'none',
+                padding: '14px',
+                fontSize: '0.84rem',
+                lineHeight: '1.6',
+                background: '#fffde7',
+                color: penColor,
+                fontFamily: 'Arial, sans-serif',
+              }}
+            />
+            <div style={{ padding: '8px 12px', borderTop: '1px solid #f9a825', display: 'flex', alignItems: 'center', gap: '6px', background: '#fff8e1', flexShrink: 0 }}>
+              <span style={{ fontSize: '0.62rem', color: '#8a6a00' }}>Text color:</span>
+              {PEN_COLORS.map(c => (
+                <button key={c} onClick={() => setPenColor(c)}
+                  style={{ width: '18px', height: '18px', borderRadius: '50%', background: c, border: penColor === c ? '2px solid #f9a825' : '2px solid transparent', cursor: 'pointer', flexShrink: 0 }} />
+              ))}
+              {qNote.trim() && (
+                <button onClick={() => setNotes(n => ({ ...n, [q.id]: '' }))}
+                  style={{ marginLeft: 'auto', fontSize: '0.62rem', color: '#c0392b', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* EXIT CONFIRMATION MODAL */}
+      {/* EXIT MODAL */}
       {showExitModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }}>
           <div style={{ background: WHITE, borderRadius: '8px', padding: '32px', maxWidth: '400px', width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}>
@@ -364,7 +569,7 @@ export default function RealExamScreen({ attempt, questions, answers: initialAns
         </div>
       )}
 
-      {/* FINISH CONFIRMATION MODAL */}
+      {/* FINISH MODAL */}
       {showFinishModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }}>
           <div style={{ background: WHITE, borderRadius: '8px', padding: '32px', maxWidth: '420px', width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}>
