@@ -248,12 +248,73 @@ function ForgotView({ onBack }) {
   );
 }
 
-const FEATURES = [
-  { icon: '📚', text: '100 CPTE-aligned questions across 6 domains' },
-  { icon: '⚡', text: 'Instant feedback with full rationale in Practice Mode' },
-  { icon: '⏱️', text: '150-minute timed Mock Exam simulation' },
-  { icon: '📊', text: 'Analytics dashboard tracking your progress over time' },
-];
+function ExamMockup() {
+  const [selected, setSelected] = React.useState(null);
+  const [eliminated, setEliminated] = React.useState([]);
+  const opts = ['Supraspinatus', 'Subscapularis', 'Infraspinatus', 'Teres minor'];
+  const correct = 0;
+  return (
+    <div style={{ borderRadius: '10px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 16px 48px rgba(0,0,0,0.35)', fontSize: '11px', fontFamily: 'Arial, sans-serif', userSelect: 'none' }}>
+      {/* Toolbar */}
+      <div style={{ background: '#0f1e1e', padding: '6px 10px', display: 'flex', alignItems: 'center', gap: '6px', borderBottom: '1px solid #1d3a3a' }}>
+        {['FINISH','EXIT','COLOUR','NOTES','HIGHLIGHT'].map(t => (
+          <div key={t} style={{ padding: '2px 6px', background: t === 'FINISH' ? '#c0392b' : 'rgba(255,255,255,0.06)', borderRadius: '3px', color: 'rgba(255,255,255,0.7)', fontSize: '9px', fontWeight: '700', letterSpacing: '0.3px' }}>{t}</div>
+        ))}
+        <div style={{ marginLeft: 'auto', background: '#0f2a2a', border: '1px solid #1d5050', borderRadius: '3px', padding: '2px 8px', color: '#7af0d4', fontFamily: 'monospace', fontSize: '10px', fontWeight: '700', letterSpacing: '1px' }}>01:47:22</div>
+        <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '9px' }}>← PREV</div>
+        <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '9px', fontWeight: '700' }}>NEXT →</div>
+      </div>
+      {/* Body */}
+      <div style={{ display: 'flex', height: '220px' }}>
+        {/* Nav */}
+        <div style={{ width: '36px', background: '#0d1f1f', borderRight: '1px solid #1d3a3a', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: '4px', gap: '1px', overflowY: 'hidden' }}>
+          {Array.from({ length: 12 }, (_, i) => (
+            <div key={i} style={{ width: '28px', textAlign: 'center', padding: '3px 0', fontSize: '8px', fontWeight: i === 4 ? '700' : '400', color: i === 4 ? '#fff' : i < 4 ? '#7af0d4' : 'rgba(255,255,255,0.3)', background: i === 4 ? '#1d6b5e' : 'transparent', borderRadius: '2px' }}>
+              {i + 1}
+              {i < 4 && i !== 4 && <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#7af0d4', margin: '1px auto 0' }} />}
+            </div>
+          ))}
+        </div>
+        {/* Vignette */}
+        <div style={{ flex: 1, background: '#f5f7f6', padding: '10px 12px', overflowY: 'auto' }}>
+          <div style={{ fontSize: '8px', color: '#1d6b5e', fontWeight: '700', marginBottom: '6px', fontStyle: 'italic' }}>The following vignette applies to questions 5–7:</div>
+          <div style={{ background: '#fff', border: '1px solid #d0d7d5', borderRadius: '4px', padding: '8px 10px', fontSize: '9px', lineHeight: '1.6', color: '#2a3a3a' }}>
+            <mark style={{ background: '#fff176', borderRadius: '2px', padding: '0 1px' }}>A 34-year-old competitive swimmer</mark> presents with a 6-week history of right shoulder pain worsened with overhead activities. Hawkins-Kennedy test is positive. Empty can test reproduces pain and weakness. MRI shows partial thickness tear with <mark style={{ background: '#b3e5fc', borderRadius: '2px', padding: '0 1px' }}>tendinopathy at the musculotendinous junction</mark>.
+          </div>
+          <div style={{ marginTop: '6px', fontSize: '8px', color: '#6a8a8a' }}>💡 Tip: Select text to highlight it. Click ✕ to eliminate wrong answers.</div>
+        </div>
+        {/* Answer panel */}
+        <div style={{ width: '190px', background: '#fff', borderLeft: '2px solid #d0d7d5', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ background: '#1a2e2e', color: '#fff', padding: '5px 8px', fontSize: '9px', fontWeight: '700' }}>Answer</div>
+          <div style={{ padding: '6px 6px 4px', fontSize: '9px', lineHeight: '1.5', color: '#1a2e2e', borderBottom: '1px solid #d0d7d5', fontWeight: '500' }}>
+            Which structure is most likely injured?
+          </div>
+          <div style={{ flex: 1, padding: '4px 6px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            {opts.map((opt, i) => {
+              const isSel = selected === i;
+              const isElim = eliminated.includes(i);
+              return (
+                <div key={i} style={{ display: 'flex', borderRadius: '3px', overflow: 'hidden', border: isSel ? '2px solid #1d6b5e' : '1px solid #d0d7d5', opacity: isElim ? 0.4 : 1 }}>
+                  <button onClick={() => !isElim && setSelected(i)} style={{ flex: 1, padding: '4px 6px', background: isSel ? '#1d6b5e' : '#fff', color: isSel ? '#fff' : '#1a2e2e', border: 'none', cursor: 'pointer', fontSize: '9px', textAlign: 'left', textDecoration: isElim ? 'line-through' : 'none' }}>
+                    <span style={{ fontWeight: '700', opacity: 0.6 }}>{String.fromCharCode(65 + i)}. </span>{opt}
+                    {selected !== null && isSel && i === correct && <span style={{ marginLeft: '4px', color: '#7af0d4' }}>✓</span>}
+                    {selected !== null && isSel && i !== correct && <span style={{ marginLeft: '4px', color: '#ff8a80' }}>✗</span>}
+                  </button>
+                  <button onClick={() => setEliminated(e => e.includes(i) ? e.filter(x => x !== i) : [...e, i])} style={{ width: '20px', background: isElim ? '#fee' : '#fff8f8', border: 'none', borderLeft: '1px solid #d0d7d5', cursor: 'pointer', color: isElim ? '#c0392b' : '#e0a0a0', fontSize: '9px', fontWeight: '700' }}>✕</button>
+                </div>
+              );
+            })}
+          </div>
+          {selected !== null && (
+            <div style={{ padding: '5px 6px', borderTop: '1px solid #d0d7d5', fontSize: '8px', background: selected === correct ? '#e8f5e9' : '#fce4ec', color: selected === correct ? '#1b5e20' : '#b71c1c', lineHeight: '1.4' }}>
+              {selected === correct ? '✓ Correct! Supraspinatus is the most commonly injured rotator cuff tendon.' : '✗ The supraspinatus (option A) is the correct answer.'}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function AuthScreen() {
   const [view, setView] = useState('login');
@@ -287,15 +348,17 @@ export default function AuthScreen() {
             <span style={{ color: '#fcd34d' }}>Start practicing</span> today.
           </h1>
 
-          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.925rem', lineHeight: 1.7, marginBottom: '2.5rem' }}>
-            Questions built for Canada's physiotherapy licensing exam — practice the way you'll be tested.
+          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.925rem', lineHeight: 1.7, marginBottom: '1.5rem' }}>
+            Questions built for Canada's physiotherapy licensing exam — practice exactly the way you'll be tested, including the real exam interface.
           </p>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-            {FEATURES.map(({ icon, text }) => (
-              <div key={text} style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-                <span style={{ fontSize: '1rem', width: '26px', textAlign: 'center', flexShrink: 0 }}>{icon}</span>
-                <span style={{ color: 'rgba(255,255,255,0.72)', fontSize: '0.875rem', fontWeight: '500' }}>{text}</span>
+          <ExamMockup />
+
+          <div style={{ display: 'flex', gap: '1.5rem', marginTop: '1.25rem' }}>
+            {[['1,600+', 'Questions'], ['6', 'Domains'], ['150 min', 'Real Exam']].map(([val, lbl]) => (
+              <div key={lbl}>
+                <div style={{ fontFamily: 'var(--font-head)', fontSize: '1.3rem', fontWeight: '900', color: '#fcd34d' }}>{val}</div>
+                <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)', fontWeight: '600', letterSpacing: '0.05em' }}>{lbl}</div>
               </div>
             ))}
           </div>

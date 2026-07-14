@@ -30,18 +30,27 @@ function formatTime(sec) {
 }
 
 // Apply highlight marks to plain text, returns array of {text, highlight} segments
+// Handles overlaps by clipping each highlight to the uncovered region
 function applyHighlights(text, highlights) {
   if (!highlights || highlights.length === 0) return [{ text, highlight: null }];
-  // Sort by start position
+  // Build a per-character color map (last writer wins for overlaps)
+  const colors = new Array(text.length).fill(null);
   const sorted = [...highlights].sort((a, b) => a.start - b.start);
-  const segments = [];
-  let pos = 0;
   for (const h of sorted) {
-    if (h.start > pos) segments.push({ text: text.slice(pos, h.start), highlight: null });
-    segments.push({ text: text.slice(h.start, h.end), highlight: h.color });
-    pos = h.end;
+    const s = Math.max(0, h.start);
+    const e = Math.min(text.length, h.end);
+    for (let i = s; i < e; i++) colors[i] = h.color;
   }
-  if (pos < text.length) segments.push({ text: text.slice(pos), highlight: null });
+  // Collapse into segments
+  const segments = [];
+  let i = 0;
+  while (i < text.length) {
+    const color = colors[i];
+    let j = i + 1;
+    while (j < text.length && colors[j] === color) j++;
+    segments.push({ text: text.slice(i, j), highlight: color });
+    i = j;
+  }
   return segments;
 }
 
@@ -58,7 +67,8 @@ function HighlightableText({ text, highlights, onHighlight, highlightColor, high
     pre.setEnd(range.startContainer, range.startOffset);
     const start = pre.toString().length;
     const selected = sel.toString();
-    if (selected.trim().length === 0) return;
+    if (selected.trim().length === 0 || start === start + selected.length) return;
+    // Ignore double-click word selections that are already highlighted (same range)
     onHighlight({ start, end: start + selected.length, color: highlightColor });
     sel.removeAllRanges();
   }

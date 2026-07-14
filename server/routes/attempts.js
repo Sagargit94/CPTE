@@ -92,8 +92,8 @@ router.post('/', async (req, res) => {
       shuffled = shuffle(questions).slice(0, 100);
     }
 
-    // Compute expiry for mock mode
-    const server_expires_at = mode === 'mock'
+    // Compute expiry for timed modes (mock + real)
+    const server_expires_at = (mode === 'mock' || mode === 'real')
       ? new Date(Date.now() + template.time_limit_seconds * 1000).toISOString()
       : null;
 
